@@ -1,7 +1,7 @@
 {
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
-  "name": "hallmark",
-  "displayName": "Hallmark",
+  "name": "hallmarkForAntigravity",
+  "displayName": "Hallmark for Antigravity",
   "version": "2.0.0",
   "description": "Design skill for websites and new pages that look designed, not generated. A hard floor against AI slop, 50 catalog themes, custom direction, and browser-tested craft gates. Powered by Together AI.",
   "logo": "site/apple-touch-icon.png",

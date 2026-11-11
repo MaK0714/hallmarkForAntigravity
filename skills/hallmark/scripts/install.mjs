@@ -13,7 +13,7 @@ const PAYLOAD = ["SKILL.md", "LICENSE", "references", "scripts", "agents", "asse
 const TARGETS = {
   antigravity: {
     label: "Google Antigravity",
-    dir: path.join(HOME, ".gemini", "config", "plugins", "hallmark"),
+    dir: path.join(HOME, ".gemini", "config", "plugins", "hallmarkForAntigravity"),
     detect: () => true,
     plugin: true,
   },
@@ -65,8 +65,8 @@ function installTo(target) {
   if (isPlugin) {
     const pluginManifest = {
       "$schema": "https://antigravity.google/schemas/v1/plugin.json",
-      name: "hallmark",
-      displayName: "Hallmark",
+      name: "hallmarkForAntigravity",
+      displayName: "Hallmark for Antigravity",
       version: "2.0.0",
       description: "Design skill for websites and new pages that look designed, not generated. A hard floor against AI slop, 50 catalog themes, custom direction, and browser-tested craft gates. Powered by Together AI.",
       logo: "skills/hallmark/assets/logo.png",
@@ -89,7 +89,7 @@ function installTo(target) {
       "hallmark-linter": {
         "PostToolUse": [
           {
-            "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+            "matcher": "write_file|edit_file",
             "hooks": [
               {
                 "type": "command",
