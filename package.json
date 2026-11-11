@@ -1,12 +1,9 @@
 {
   "name": "hallmark",
   "version": "2.0.0",
-  "description": "A design skill for AI coding assistants. Makes the UIs they generate look made, not generated. Powered by Together AI.",
+  "description": "A design skill for Google Antigravity that refuses to look AI-generated. Powered by Together AI.",
   "keywords": [
-    "claude",
-    "claude-code",
-    "codex",
-    "opencode",
+    "antigravity",
     "agent-skills",
     "skill",
     "design",
@@ -26,10 +23,7 @@
     "entry": "skills/hallmark/SKILL.md",
     "references": "skills/hallmark/references",
     "harnesses": [
-      "claude-code",
-      "codex",
-      "cursor",
-      "opencode"
+      "antigravity"
     ]
   },
   "scripts": {

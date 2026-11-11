@@ -1,6 +1,6 @@
 # Texture and print artifacts: a budgeted vocabulary
 
-Loaded only when the picked theme earns texture (affinity table below) or a custom draw's lineage is print. Texture is a treatment with a budget, never ambience: one artifact family per page, tokened opacity, never animated, never under body text at more than a whisper. Grain smeared everywhere is the tic `flow.md` § Harnesses refuses; grain from this file, on a theme that earns it, is craft.
+Loaded only when the picked theme earns texture (affinity table below) or a custom draw's lineage is print. Texture is a treatment with a budget, never ambience: one artifact family per page, tokened opacity, never animated, never under body text at more than a whisper. Grain smeared everywhere is the tic `flow.md` § Antigravity execution refuses; grain from this file, on a theme that earns it, is craft.
 
 ## The budget (binds on every artifact)
 

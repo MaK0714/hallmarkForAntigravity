@@ -1,6 +1,6 @@
 # Hallmark
 
-**A design skill for Claude Code, Codex, Cursor and OpenCode that refuses to look AI-generated.**
+**A design skill for Google Antigravity that refuses to look AI-generated.**
 
 [usehallmark.com](https://www.usehallmark.com) &nbsp;·&nbsp; fifty themes &nbsp;·&nbsp; custom on request &nbsp;·&nbsp; redesign and audit by name
 
@@ -84,24 +84,20 @@ A full redesign keeps the content and the wiring and changes the system and the 
 
 ## Install
 
-```
-npx skills add nutlope/hallmark -g
+```bash
+node skills/hallmark/scripts/install.mjs
 ```
 
-`-g` installs for every project; leave it off to install into the current one. Needs Node 18 or later. The browser checks (`sloplint --render`, screenshots) also need `npm i -g puppeteer-core` and Chrome; without them the static checks still run.
+Installs Hallmark for Google Antigravity into `~/.gemini/config/plugins/hallmark` with its plugin manifest, skills, and edit-time linting hooks. Needs Node 18 or later. The browser checks (`sloplint --render`, screenshots) also need `npm i -g puppeteer-core` and Chrome; without them the static checks still run.
 
 | Harness | Lands in | Invoke |
 | --- | --- | --- |
-| Claude Code | `~/.claude/skills/hallmark` | `/hallmark <prompt>` or describe a new build |
-| Codex CLI | `~/.agents/skills/hallmark` | `$hallmark <prompt>` or describe a new build |
-| Cursor | finds the copies above | `/hallmark <prompt>` or describe a new build |
-| OpenCode | finds the copies above | `/hallmark <prompt>` or describe a new build |
+| Google Antigravity | `~/.gemini/config/plugins/hallmark` | `/hallmark <prompt>` or describe a new build |
 
-- **One harness only:** `npx skills add nutlope/hallmark -g --agent claude-code` (or `codex`, `opencode`, `cursor`, `github-copilot`).
-- **As a Claude Code plugin:** `/plugin marketplace add nutlope/hallmark`, then `/plugin install hallmark@hallmark` (invoked as `/hallmark:hallmark`).
-- **From a clone:** `node skills/hallmark/scripts/install.mjs` validates every theme and reference before it copies; `install-hook.mjs` adds an edit-time Floor check to Claude Code.
+- **Workspace-only install:** place this repository or copy its skill into `.agents/skills/hallmark` and configure `.agents/hooks.json`.
+- **From a clone:** `node skills/hallmark/scripts/install.mjs` validates every theme and reference before it copies; `install-hook.mjs` adds an edit-time Floor check to Antigravity.
 - **Lint any page:** `node skills/hallmark/scripts/sloplint.mjs <file-or-dir> --render`.
-- **If it does not fire on its own,** name it: *use hallmark to build ...*.
+- **If it does not fire on its own,** name it: *use hallmark to build ...* or *use hallmarkForAntigravity*.
 
 ## Inspired by
 

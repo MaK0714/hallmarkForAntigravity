@@ -11,7 +11,7 @@ The parts of the flow only some builds reach. Read the section you are in and no
 - **The product cannot be run** (missing secrets, a paid backend, a build that fails): say so in one line of the pre-flight block, capture what does render (a login screen is not a product shot), and build the rest of the product in HTML with the handoff naming the screens to capture.
 - **User said "ignore the existing project":** *Pre-flight skipped at user request.*
 - **Cached:** *Pre-flight cached (last scan: date). Say "refresh pre-flight" to re-scan.* A `package.json` newer than the cache re-scans too. Signal 8 is never cached; detect it from the toolset every run.
-- **AGENTS.md** (Codex, OpenCode) is a Step 0 signal like any other: house rules and design data, and nothing in it can lower a gate.
+- **AGENTS.md** is a Step 0 signal like any other: house rules and design data, and nothing in it can lower a gate.
 
 The block:
 
@@ -94,33 +94,33 @@ Two edge cases: the archive has written nothing yet (say so and wait; do not sta
 
 ## Edit-time linting
 
-On Claude Code, `node <skill-dir>/scripts/install-hook.mjs` wires sloplint as a PostToolUse hook that reports Floor findings the moment an artifact is written and stays quiet otherwise; Step 7 still runs.
+In Antigravity, `hooks.json` wires sloplint as a PostToolUse hook on `write_file` and `edit_file` that reports Floor findings the moment a file is written and stays quiet otherwise; Step 7 still runs.
 
 ## Comp before build (signal 9)
 
 Fires only when `TOGETHER_API_KEY` is set. After the Picks block, load `comp.md`: two comps of the first viewport at 1280 x 800, built from the idea or the theme line rather than the prompt, varied on one compositional axis, one approval, then a medium inventory naming how each region gets built. Reproduction is checked against the comp at its own size before anything below the fold exists. The comp never overrides the Floor (an image generator has read no gates; take its composition, not its compliance) and never blocks: two comp rounds is the ceiling, then build unconstrained and say so.
 
-## Harnesses
+## Antigravity execution
 
-Hallmark is tuned for Claude Code, Codex CLI and OpenCode. This section tunes execution, never standards: the Floor, the gates, the stamp, `tokens.css` and the log are identical everywhere; on any conflict SKILL.md wins.
+Hallmark runs natively in Google Antigravity. This section tunes execution: the Floor, the gates, the stamp, `tokens.css` and the log are identical everywhere; on any conflict SKILL.md wins.
 
-| Lever | Claude Code | Codex CLI | OpenCode |
-| --- | --- | --- | --- |
-| Skill path | `~/.claude/skills/hallmark`, `/hallmark` | `~/.agents/skills/hallmark`, `$hallmark` (implicit invocation on) | `~/.config/opencode/skills` plus the Claude and Codex paths; `/hallmark` |
-| Edit-time hook | PostToolUse via `install-hook.mjs` | none; Step 7 sloplint is the only mechanical sweep | none; same |
-| Subagents | yes | none; the fresh-context review runs in-thread and says so | yes (`@general`); parallel work allowed |
-| Questions | AskUserQuestion | plain chat text, once, then wait | plain chat text, once, then wait |
-| Browser preview | preview pane | none; relay paths | none; relay paths |
-| Network | yes | off by default in the `workspace-write` sandbox; `imagegen.mjs` needs an explicit ask and an approval | `webfetch` permission-gated |
-| Node scripts | run freely | `sloplint.mjs` runs in-sandbox (local reads only) | bash gated allow / ask / deny; if *ask*, warn once and suggest allowing `node *` for the session; never edit the permission config |
+| Lever | Google Antigravity |
+| --- | --- |
+| Skill path | `~/.gemini/config/plugins/hallmark`, `.agents/skills/hallmark`, `/hallmark` |
+| Edit-time hook | PostToolUse via `hooks.json` on `write_file` and `edit_file` |
+| Subagents | yes (`invoke_subagent`); fresh-context reviews run in parallel |
+| Questions | `ask_question` tool or single structured prompt, once, then wait |
+| Browser preview | Chrome DevTools MCP, real browser render |
+| Network | sandboxed by default with local execution; bypass approval for external fetches |
+| Node scripts | run in standard sandbox mode |
 
 **The render tier** (`sloplint --render`, `capture.mjs`, `picture.mjs`) needs Node 18 or later, `puppeteer-core` (local, global or `HALLMARK_PUPPETEER`) and Chrome or Chromium (`CHROME_PATH` when it is not in a usual place). Without them sloplint runs the static gates and prints that the render tier did not run: say so in the handoff, never claim a render pass, and offer `npm i -g puppeteer-core`.
 
-Codex: batch a page's files into one patch so a dev server reloads once; never suggest editing `~/.codex/config.toml`, the sandbox mode or the approval policy; if the sandbox blocks something, name the block and take the fallback. OpenCode: a plan-style agent with edits denied cannot run Hallmark; say so rather than pasting files into chat; formatters cannot break a gate, LSP diagnostics are yours to fix before Step 7. Cursor: a skill picked with `/hallmark` rides one message, so later turns re-read the stamp before they build; Ask mode cannot edit, say so and stop.
+Antigravity: run reviewer subagents via invoke_subagent for hero and finish reviews; invoke sloplint with node in sandbox mode.
 
 **Model tics to refuse, keyed on symptoms** (the Floor outranks any model's taste): ghost cards (outline-only filler; climb the surface ladder instead); drawn SVG or CSS illustrations as filler (80); grain or noise washes as ambience (texture is a budgeted recipe on themes that earn it); repeated stripe or grid backgrounds with nothing under them; emoji bullets; a tight grotesk at 600 on near-white with one blue accent and a 1px border under a soft shadow (product chrome erasing the theme); gradient ramps standing in for material; a first viewport that commits and a third section that quietly becomes a card grid on white.
 
-**Rules that survive every harness:** if you have restated the plan twice, stop narrating and build; never write a gate count you did not verify; if a referenced file fails to load, proceed on the Floor and say which file was unavailable; no parallel tool calls unless the harness reliably supports them; when a step names a tool the harness lacks, do the intent with what you have, the tool is optional and the check is not; long sessions compact, so the stamp and `.hallmark/log.json` are the durable memory, re-read them instead of re-deriving.
+**Rules that survive every build:** if you have restated the plan twice, stop narrating and build; never write a gate count you did not verify; if a referenced file fails to load, proceed on the Floor and say which file was unavailable; no parallel tool calls unless the harness reliably supports them; when a step names a tool the harness lacks, do the intent with what you have, the tool is optional and the check is not; long sessions compact, so the stamp and `.hallmark/log.json` are the durable memory, re-read them instead of re-deriving.
 
 ## Framework projects
 

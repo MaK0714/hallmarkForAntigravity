@@ -10,7 +10,7 @@ What is next for Hallmark.
 
 **Decide the newest generated defaults.** Cream or off-white paper on its own, pill-shaped buttons, near-black with one acid accent and the hairline broadsheet now read as generated looks. Custom runs already treat them as spent; the catalog needs a decision: keep them as deliberate materials dealt only on their keywords, or re-paper and re-shape the themes that drift there.
 
-**Conformance on all three harnesses.** Run the same brief and the same redesign through Claude Code, `codex exec` and OpenCode's non-interactive mode and assert each one reaches a 0 FAIL sweep with its fresh-context review recorded.
+**Conformance on Google Antigravity.** Run the same brief and the same redesign through Antigravity and assert each one reaches a 0 FAIL sweep with its fresh-context review recorded.
 
 **Measure a build.** Time and token cost of one page build before and after the v2 efficiency pass (patterns in place of a whole exemplar page, `base.css` written by the scaffold, review briefs the builder never reads), on the same brief.
 
@@ -21,12 +21,11 @@ What is next for Hallmark.
 - **Theme-aware motion tokens.** Per-theme `--dur-micro`, `--dur-short` and `--dur-long` from each theme's motion character, so a severe theme moves faster than a calm one without hand-tuning.
 - **Multi-page coherence.** Lock the brand axes in a `design.md`, vary the page-voice axes: different pages of one site, not different sites.
 - **Brand-first flow.** From a short product description, a complete brand (palette, type, voice, imagery through the image hook) locked into a `design.md`, then every page built against it.
-- **The edit-time hook on by default.** `scripts/install-hook.mjs` is opt-in today; a Claude Code plugin could ship it wired, so small edits to a Hallmark page keep the Floor without calling the skill.
+- **The edit-time hook on by default.** `scripts/install-hook.mjs` is opt-in today; the Antigravity plugin ships it wired in `hooks.json`, so small edits to a Hallmark page keep the Floor without calling the skill.
 - **App screens in depth.** The app scope skips the landing-page gates and names what replaces them; next are checks of its own (the four data states, table figures, a control vocabulary that holds across screens).
 
 ---
 
 ## Later
 
-- **More harnesses.** Gemini CLI or Copilot only if demand shows up, same one-core shape.
 - **Live preview as an MCP server.** Watch, render, screenshot and feed back into the sweep; the `--render` tier is the seed of it.

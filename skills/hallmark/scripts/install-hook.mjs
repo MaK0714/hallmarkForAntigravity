@@ -6,18 +6,17 @@ import { homedir } from "node:os";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const HOOK_CMD = `node "${join(HERE, "lint-hook.mjs")}"`;
-const MATCHER = "Write|Edit|MultiEdit";
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
 
 const settingsPath = has("--global")
-  ? join(homedir(), ".claude", "settings.json")
-  : join(process.cwd(), ".claude", "settings.json");
+  ? join(homedir(), ".gemini", "config", "plugins", "hallmark", "hooks.json")
+  : join(process.cwd(), ".agents", "hooks.json");
 
 const hookEntry = {
-  matcher: MATCHER,
-  hooks: [{ type: "command", command: HOOK_CMD, timeout: 10 }],
+  matcher: "write_file|edit_file",
+  hooks: [{ type: "command", command: HOOK_CMD, timeout: 15 }],
 };
 
 function readSettings() {
@@ -28,16 +27,9 @@ function readSettings() {
   }
 }
 
-const ourHook = (h) => typeof h?.command === "string" && /hallmark[\\/]scripts[\\/]lint-hook\.mjs/.test(h.command);
-const withoutOurs = (list) => list.flatMap((e) => {
-  if (!Array.isArray(e?.hooks) || !e.hooks.some(ourHook)) return [e];
-  const rest = e.hooks.filter((h) => !ourHook(h));
-  return rest.length ? [{ ...e, hooks: rest }] : [];
-});
-
 if (has("--print")) {
   console.log(`# add to ${settingsPath} :`);
-  console.log(JSON.stringify({ hooks: { PostToolUse: [hookEntry] } }, null, 2));
+  console.log(JSON.stringify({ "hallmark-linter": { PostToolUse: [hookEntry] } }, null, 2));
   process.exit(0);
 }
 
@@ -47,23 +39,28 @@ if (has("--remove") && !existsSync(settingsPath)) {
 }
 
 const settings = readSettings();
-if (!settings || typeof settings !== "object" || Array.isArray(settings)) { console.error(`refusing to rewrite ${settingsPath}: it is not a JSON object`); process.exit(1); }
-settings.hooks ??= {};
-settings.hooks.PostToolUse ??= [];
-if (!Array.isArray(settings.hooks.PostToolUse)) { console.error(`refusing to rewrite ${settingsPath}: hooks.PostToolUse is not a list`); process.exit(1); }
-// Write beside the file and rename over it, so a crash never leaves settings.json half written.
-// A symlinked settings.json (a dotfiles repo) keeps its link: the write lands on the file it points at.
-const save = () => { const dest = existsSync(settingsPath) ? realpathSync(settingsPath) : settingsPath; const tmp = `${dest}.hallmark-tmp`; writeFileSync(tmp, JSON.stringify(settings, null, 2) + "\n"); renameSync(tmp, dest); };
+if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+  console.error(`refusing to rewrite ${settingsPath}: it is not a JSON object`);
+  process.exit(1);
+}
 
-settings.hooks.PostToolUse = withoutOurs(settings.hooks.PostToolUse);
+const save = () => {
+  const dest = existsSync(settingsPath) ? realpathSync(settingsPath) : settingsPath;
+  const tmp = `${dest}.hallmark-tmp`;
+  writeFileSync(tmp, JSON.stringify(settings, null, 2) + "\n");
+  renameSync(tmp, dest);
+};
 
 if (has("--remove")) {
+  delete settings["hallmark-linter"];
   save();
   console.log(`removed the Hallmark lint hook from ${settingsPath}`);
   process.exit(0);
 }
 
-settings.hooks.PostToolUse.push(hookEntry);
+settings["hallmark-linter"] = {
+  PostToolUse: [hookEntry],
+};
 mkdirSync(dirname(settingsPath), { recursive: true });
 save();
 console.log(`installed the Hallmark edit-time lint hook into ${settingsPath}`);

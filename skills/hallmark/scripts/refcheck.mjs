@@ -81,7 +81,7 @@ for (const f of MD) {
   }
 }
 
-const PROJECT_FILES = new Set(['design.md', 'DESIGN.md', 'brand-spec.md', 'AGENTS.md', 'CLAUDE.md', 'brief.md', 'README.md', 'prompts.md', 'notes.md']);
+const PROJECT_FILES = new Set(['design.md', 'DESIGN.md', 'brand-spec.md', 'AGENTS.md', 'GEMINI.md', 'brief.md', 'README.md', 'prompts.md', 'notes.md']);
 const CODE_EXT = /\.(md|mjs)$/;
 for (const f of MD) {
   const src = read(f);

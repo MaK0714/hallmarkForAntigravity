@@ -11,7 +11,7 @@ function main() {
   try { raw = readFileSync(0, "utf8"); } catch { return OK(); }
   let payload;
   try { payload = JSON.parse(raw); } catch { return OK(); }
-  const filePath = payload?.tool_input?.file_path;
+  const filePath = payload?.toolCall?.args?.Path || payload?.toolCall?.args?.TargetFile;
   if (typeof filePath !== "string" || !filePath) return OK();
   const lower = filePath.toLowerCase();
   const markup = /\.(html|css)$/.test(lower);
@@ -21,7 +21,7 @@ function main() {
   try { src = readFileSync(filePath, "utf8"); } catch { return OK(); }
   if (src.length === 0) return OK();
   const inHallmarkProject = () => { let d = dirname(filePath); for (let i = 0; i < 8; i++) { if (existsSync(join(d, ".hallmark"))) return true; const up = dirname(d); if (up === d) break; d = up; } return false; };
-  const looksHallmark = markup ? /\/\*\s*Hallmark/.test(src) : inHallmarkProject();
+  const looksHallmark = /\/\*\s*Hallmark/.test(src) || inHallmarkProject();
   if (!looksHallmark) return OK();
   const gm = src.match(/genre:\s*(editorial|modern-minimal|atmospheric|playful)/i);
   const args = [filePath, "--json", "--tier", "floor"];
@@ -43,7 +43,8 @@ function main() {
   const lines = fails.slice(0, 10).map((f) => `- gate ${f.gate} (line ${f.line}): ${f.evidence} -> ${f.fix}`);
   const more = fails.length > 10 ? `\n  (+${fails.length - 10} more)` : "";
   const ctx = `Hallmark Floor check on ${name}: ${fails.length} FAIL${fails.length === 1 ? "" : "s"}.\n${lines.join("\n")}${more}\nFix these now; the Reflex and Finish tiers run at Step 7.`;
-  return OK({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: ctx } });
+  process.stderr.write(`${ctx}\n`);
+  return OK({});
 }
 
 try { main(); } catch { OK(); }

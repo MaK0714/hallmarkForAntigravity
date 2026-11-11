@@ -3,17 +3,18 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync, realpathSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, extname, dirname, basename, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const GENRES = ['editorial', 'modern-minimal', 'atmospheric', 'playful'];
 const args = process.argv.slice(2);
-const opts = { genre: null, scope: 'page', json: false, render: false, tier: null, stage: 'page', before: false, kept: false, urls: [], paths: [] };
+const opts = { genre: null, scope: 'page', json: false, render: false, renderMcp: false, tier: null, stage: 'page', before: false, kept: false, urls: [], paths: [] };
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '--genre') { opts.genre = args[++i]; }
   else if (a === '--scope') { opts.scope = args[++i]; }
   else if (a === '--json') { opts.json = true; }
   else if (a === '--render') { opts.render = true; }
+  else if (a === '--render-mcp') { opts.renderMcp = true; }
   else if (a === '--before') { opts.before = true; }
   else if (a === '--kept') { opts.kept = true; }
   else if (a === '--tier') { opts.tier = args[++i]; }
@@ -24,7 +25,7 @@ for (let i = 0; i < args.length; i++) {
   else opts.paths.push(a);
 }
 function usage() {
-  console.error('usage: node sloplint.mjs <file-or-dir ...> [--genre editorial|modern-minimal|atmospheric|playful] [--scope page|component|app] [--stage hero|page] [--json] [--render] [--url http://localhost:3000] [--tier floor] [--before | --kept]');
+  console.error('usage: node sloplint.mjs <file-or-dir ...> [--genre editorial|modern-minimal|atmospheric|playful] [--scope page|component|app] [--stage hero|page] [--json] [--render] [--render-mcp] [--url http://localhost:3000] [--tier floor] [--before | --kept]');
   console.error('--before records what the target says and does (.hallmark/before.json, screenshots in .hallmark/before); --kept checks a redesign against that record');
   console.error('reads .html and .css, plus .jsx .tsx .vue .svelte .astro (Tailwind class strings, cn/clsx/cva calls); skips node_modules, dist, build, coverage and dot folders');
 }
@@ -1103,7 +1104,7 @@ function trackingEmOf(ctx, decls, fontPx) {
 }
 
 function check1(ctx) {
-  const banned = new Set(['inter', 'roboto', 'open sans', 'poppins', 'lato', 'system-ui', '-apple-system', 'arial', 'helvetica', 'helvetica neue', 'segoe ui']);
+  const banned = new Set(['inter', 'roboto', 'open sans', 'poppins', 'lato', 'system-ui', '-apple-system', 'arial', 'helvetica', 'helvetica neue', 'segoe ui', 'sans-serif', 'serif', 'monospace']);
   const seen = new Set();
   const flag = (fam, file, line, where) => {
     if ([...banned].some((b) => famKey(b) === famKey(fam)) && !seen.has(fam + where)) {
@@ -1223,6 +1224,26 @@ function check3(ctx) {
         if (iconTiles) {
           report(3, 'WARN', r.file, d.line, `3 equal icon-tile columns on ${r.selector}`, 'Vary column widths or drop the icon tiles');
         }
+      }
+    }
+  }
+  const GENERIC_ADJ_HEADS = new Set(['fast', 'secure', 'simple', 'reliable', 'scalable', 'flexible', 'powerful', 'easy', 'smart', 'modern', 'speed', 'security', 'simplicity', 'reliability', 'scale', 'flexibility', 'power']);
+  for (const doc of ctx.docs) {
+    for (let i = 0; i < doc.tags.length; i++) {
+      const t = doc.tags[i];
+      if (t.close || t.selfClosing || !/^(section|div|ul)$/.test(t.name)) continue;
+      const inner = innerOf(doc, i);
+      if (!inner) continue;
+      const subHeads = [];
+      const hRe = /<h[3-6]\b[^>]*>([\s\S]*?)<\/h[3-6]>/gi;
+      let hm;
+      while ((hm = hRe.exec(inner.inner))) {
+        const text = plainText(hm[1]).toLowerCase().trim();
+        if (GENERIC_ADJ_HEADS.has(text)) subHeads.push(text);
+      }
+      if (subHeads.length >= 3) {
+        report(3, 'WARN', doc.file, t.line, `symmetric single-word adjective feature heads (${subHeads.slice(0, 3).join(', ')})`, 'Use specific descriptive headings that name product actions, not generic adjectives');
+        break;
       }
     }
   }
@@ -1984,7 +2005,7 @@ function check42(ctx) {
     const hairline = ctx.rules.some((r) => (navCls && r.selector.includes(navCls) || /(^|[\s,])(nav|header)\b/.test(r.selector))
       && r.decls.some((d) => /^border(-bottom)?$/.test(d.prop) && /\b1px\b/.test(d.value)));
     const hasCta = /btn|cta|button/i.test(inner.inner);
-    if (links >= 4 && links <= 6 && hairline && hasCta) {
+    if (links >= 3 && links <= 7 && hairline && hasCta) {
       report(42, 'WARN', doc.file, navTag.line, `default nav shape: ${links} links + CTA + 1px hairline`, 'Give the nav a shape of its own (layout.md, navs)');
     }
   }
@@ -2027,7 +2048,18 @@ function check46(ctx) {
     /\b\d+(\.\d+)?\s*%\s*(faster|uptime|conversion|accuracy|retention|growth|fewer|less|more)\b/i,
     /\+\s*\d+(\.\d+)?\s*%\s*(conversion|growth|revenue|retention)\b/i,
     /\bsaves?\s+\d+\s+hours?\b/i,
+    /\bmore than [\d,]+\s*(teams?|users?|customers?|developers?|companies?|people)\b/i,
+    /\b(over|nearly|almost) [\d,]+\s*(teams?|users?|customers?|developers?|companies?)\b/i,
+    /\b\d+\s*[x×]\s*(more|better|cheaper|fewer errors?|less time)\b/i,
+    /\bin\s+(days?|hours?|minutes?),?\s+not\s+(weeks?|months?|hours?|days?)\b/i,
+    /\b(zero|no)\s+downtime\b/i,
+    /\bused by teams? at\b/i,
+    /\b(reduce[sd]?|cut|lower[sd]?|decrease[sd]?)\s+(churn|costs?|time|errors?)\s+by\s+\d/i,
+    /\b(rated\s+\d(?:\.\d)?(?:\s*\/\s*5|\s+out\s+of\s+5|\s+stars?)|\d\.\d\s+out\s+of\s+5|\d\.\d\s*\/\s*5\s*stars?)\b/i,
+    /\b[\d,]+\s*\+\s*(?:five-star|5-star|happy|satisfied)\s*(?:reviews?|ratings?|users?|customers?)\b/i,
+    /(?:★|&#9733;|&#x2605;|\u2605){4,5}/,
   ];
+  const anonymousTestimonial = /\b(founder|co-founder|ceo|cto|cpo|vp|director|head|lead|manager|engineer|designer)(?:\s+of\s+[\w\s]+?)?\s+(?:at|of)\s+(?:a|an)\s+(?:series\s+[a-c]|fast[- ]growing|high[- ]growth|fortune\s+\d+|leading|top|mid[- ]size[d]?|stealth|\w+)\s+(?:startup|company|firm|saas|brand|agency|enterprise)\b/i;
   for (const doc of ctx.docs) {
     const prose = maskedProse(doc);
     const lines = new Set();
@@ -2038,6 +2070,14 @@ function check46(ctx) {
       if (lines.has(line)) continue;
       lines.add(line);
       report('46a', 'WARN', doc.file, line, `metric "${m[0].trim()}": verify the user supplied this number`, 'Confirm the metric or drop the slot');
+    }
+    const anon = anonymousTestimonial.exec(prose);
+    if (anon) {
+      const line = doc.lineOf(anon.index);
+      if (!lines.has(line)) {
+        lines.add(line);
+        report('46a', 'WARN', doc.file, line, `vague anonymous testimonial attribution "${anon[0].trim()}"`, 'Name a real customer and company, or drop the testimonial');
+      }
     }
   }
 }
@@ -2382,7 +2422,7 @@ function checkCopyTell(ctx) {
     const m = /\w\s--\s\w|[\u2014\u2013]|&mdash;|&ndash;|&#8212;|&#8211;/.exec(prose);
     if (m) report(19, 'FAIL', doc.file, doc.lineOf(m.index), `dash "${m[0]}" in copy`, 'A comma, a colon, a full stop or parentheses; never a dash');
     const seenBuzz = new Set();
-    for (const buzz of prose.matchAll(new RegExp(/\b(seamless(ly)?|robust|empower(s|ing)?|supercharge[sd]?|best[- ]in[- ]class|industry[- ]leading|mission[- ]critical|future[- ]proof(ed)?|unleash(es|ed|ing)?|elevate[sd]?|effortless(ly)?|unlock(s|ing)?|next[- ]generation|world[- ]class|cutting[- ]edge|streamline[sd]?|revolutioni[sz]e[sd]?|game[- ]chang(er|ing)|enterprise[- ]grade|quietly (trusted|in use)|built for the modern|in today's)\b/.source, 'gi'))) {
+    for (const buzz of prose.matchAll(new RegExp(/\b(seamless(ly)?|robust|empower(s|ing)?|supercharge[sd]?|best[- ]in[- ]class|industry[- ]leading|mission[- ]critical|future[- ]proof(ed)?|unleash(es|ed|ing)?|elevate[sd]?|effortless(ly)?|unlock(s|ing)?|next[- ]generation|world[- ]class|cutting[- ]edge|streamline[sd]?|revolutioni[sz]e[sd]?|game[- ]chang(er|ing)|enterprise[- ]grade|quietly (trusted|in use)|built for the modern|in today's|reimagine[sd]?|frictionless|powerhouse|tailored to (your|each)|unrivaled|redefine[sd]?|paradigm shift)\b/.source, 'gi'))) {
       const word = buzz[0].toLowerCase();
       if (seenBuzz.has(word) || seenBuzz.size >= 8) continue;
       seenBuzz.add(word);
@@ -2459,7 +2499,14 @@ function check63(ctx) {
       if (!text) continue;
       const dots = (text.match(/\s[·•]\s/g) || []).length;
       if (dots >= 2 && !dotLines.has(t.line)) { dotLines.add(t.line); report(63, 'FAIL', doc.file, t.line, `middle-dot meta string "${trunc(text, 50)}"`, 'Line breaks, columns or hairlines; one dot in a byline at most'); }
-      if ((t.name === 'a' || t.name === 'button') && /(\u2192|->|\u203a|\u00bb|\u27f6)\s*$/.test(text) && !arrowLines.has(t.line)) { arrowLines.add(t.line); report(63, 'FAIL', doc.file, t.line, `arrow glued to the label "${trunc(text, 40)}"`, 'A verb as the label; the link already says it goes somewhere'); }
+      if ((t.name === 'a' || t.name === 'button') && !arrowLines.has(t.line)) {
+        const hasTextArrow = /(\u2192|->|\u203a|\u00bb|\u27f6|\s>\s*$|\s>>\s*$)\s*$/.test(text);
+        const hasSvgArrow = /<svg\b[^>]*class\s*=\s*["'][^"']*(arrow|chevron)[^"']*["']/i.test(inner.inner);
+        if (hasTextArrow || hasSvgArrow) {
+          arrowLines.add(t.line);
+          report(63, 'FAIL', doc.file, t.line, `arrow glued to the label "${trunc(text, 40)}"`, 'A verb as the label; the link already says it goes somewhere');
+        }
+      }
       if (/^[A-Z]{3,}\s+-\s+\S/.test(text) && text.length < 60) report(63, 'FAIL', doc.file, t.line, `WORD - fragment label "${trunc(text, 40)}"`, 'Say the thing as a sentence or a heading');
     }
     for (let i = 0; i < doc.tags.length; i++) {
@@ -2763,6 +2810,32 @@ function checkF9(ctx) {
   for (const c of ctx.cssFiles) scan(c.raw, c.file, (i) => c.raw.slice(0, i).split('\n').length);
 }
 
+function check80static(ctx) {
+  const ILLUS_SRC = /\b(illustration|illustr|hero[\-_]?img|hero[\-_]?graphic|feature[\-_]?(graphic|image|img)|blob|blobs|mascot|character|artwork|banner[\-_]graphic|bg[\-_]?(graphic|shape)|decorative|deco[\-_]|filler)\b/i;
+  const ILLUS_ALT = /\b(illustration|drawing|graphic|artwork|mascot|character|decorative)\b/i;
+  if (opts.scope === 'component') return;
+  for (const doc of ctx.docs) {
+    for (const t of doc.tags) {
+      if (t.close || t.name !== 'img') continue;
+      const src = getAttr(t.attrs, 'src') || '';
+      if (!/\.svg(\?[^"']*)?$/i.test(src)) continue;
+      const filename = src.split('/').pop().split('?')[0].replace(/\.svg$/i, '');
+      const alt = getAttr(t.attrs, 'alt') || '';
+      const ariaLabel = getAttr(t.attrs, 'aria-label') || '';
+      const cls = getAttr(t.attrs, 'class') || '';
+      const isChart = /\b(chart|graph|map|diagram|data|analytics|flow|schema|network)\b/i.test(filename + ' ' + alt + ' ' + ariaLabel + ' ' + cls);
+      if (isChart) continue;
+      const isLogo = /\b(logo|wordmark|brand|icon)\b/i.test(filename + ' ' + cls);
+      if (isLogo) continue;
+      if (ILLUS_SRC.test(filename) || ILLUS_ALT.test(alt)) {
+        report('80', 'WARN', doc.file, t.line,
+          `SVG image with illustration-pattern name or alt ("${filename}.svg"${alt ? `, alt="${alt}"` : ''})`,
+          'Use a photograph, the real product UI, or type at scale; if this is a chart or diagram, add "chart", "diagram" or "graph" to the class or aria-label to exempt it');
+      }
+    }
+  }
+}
+
 function fontSizePxOf(r, ctx) {
   const fs = r.decls.find((d) => d.prop === 'font-size');
   if (fs) return pxOf(resolveVars(fs.value, ctx.tokens));
@@ -2985,6 +3058,19 @@ const TELLS19 = [
   [/\blorem ipsum\b/i, 'placeholder text'],
   [/\ball rights reserved\b/i, 'template footer line'],
   [/\bmade with\s*(?:♥|❤|\u{1f9e1}|\u{1f49b}|\u{1f49a}|\u{1f499}|\u{1f49c}|\u{1f5a4}|\u{1f90d}|&hearts;|&#9829;|&#10084;|<3)/iu, 'made with a heart'],
+  [/\bblazing(?:ly)?\s*fast\b/i, 'cliche'],
+  [/\b(simple\s+yet\s+powerful|powerful\s+yet\s+simple)\b/i, 'cliche'],
+  [/\bready\s+to\s+(transform|supercharge|elevate|take\s+your)\b/i, 'cliche'],
+  [/\btake\s+your\s+\w+\s+to\s+the\s+next\s+level\b/i, 'cliche'],
+  [/\bno\s+learning\s+curve\b/i, 'cliche'],
+  [/\bbuilt\s+(from\s+the\s+ground\s+up|with\s+\w+\s+in\s+mind)\b/i, 'cliche'],
+  [/\bdesigned\s+for\s+(modern\s+teams?|the\s+future\s+of)\b/i, 'cliche'],
+  [/\blook\s+no\s+further\b/i, 'cliche'],
+  [/\bunlock\s+(your|the)\s+(true\s+)?potential\b/i, 'cliche'],
+  [/\ball\s+without\s+(ever\s+)?(leaving|breaking|switching)\b/i, 'cliche'],
+  [/\bat\s+your\s+fingertips\b/i, 'cliche'],
+  [/\bthe\s+smart\s+way\s+to\b/i, 'cliche'],
+  [/\bexperience\s+the\s+(difference|future|power)\b/i, 'cliche'],
 ];
 function check19Tells(ctx) {
   for (const doc of ctx.docs) {
@@ -3056,7 +3142,7 @@ function check58Static(ctx) {
   }
 }
 
-const SECOND_CTA = /^(learn more|see how it works|watch (the )?demo|get started|book a demo)$/i;
+const SECOND_CTA = /^(learn more|see how it works|watch (the )?demo|get started|book a demo|request a demo|schedule a call|contact sales|talk to an expert|view pricing|explore features)$/i;
 function check42TwoButton(ctx) {
   for (const doc of ctx.docs) {
     const h1 = doc.tags.findIndex((t) => !t.close && t.name === 'h1');
@@ -3179,7 +3265,7 @@ function check47Placeholders(ctx) {
   }
 }
 
-const TAILWIND_HEX = /#(0f172a|1e293b|6366f1|8b5cf6|3b82f6|f8fafc|64748b)\b/i;
+const TAILWIND_HEX = /#(0f172a|1e293b|6366f1|8b5cf6|3b82f6|f8fafc|64748b|10b981|06b6d4|9333ea|2563eb|18181b|171717|111827|4f46e5|7c3aed|a855f7)\b/i;
 function check65Tailwind(ctx) {
   for (const r of ctx.rules) {
     if (!isTokenRule(r) || r.selector === '@font-face') continue;
@@ -3971,7 +4057,7 @@ const CHECKS = [check1, check2, check3, check3Stripe, check4, check6a, check7, c
   check39, check40_41, check42, check42Footer, check46, check47, check48, check49,
   check50, check50Wrap, check53, check54, check55, check56, checkCopyTell, check62, check63, check64, check65, check67, check38c,
   check19Tells, check58Static, check68, check69, check70, check42TwoButton, check47Placeholders, check65Tailwind, check29Glow, check11Lift, check15Fade,
-  checkF1, checkF2, checkF3, checkF4, checkF5, checkF6, checkF7, checkF7Pills, checkF8, checkF9, checkF15, checkF16, checkF21, checkF22, checkF23, checkF24, check76,
+  checkF1, checkF2, checkF3, checkF4, checkF5, checkF6, checkF7, checkF7Pills, checkF8, checkF9, check80static, checkF15, checkF16, checkF21, checkF22, checkF23, checkF24, check76,
   checkTailwind, checkComponentText];
 
 const files = opts.paths.length ? collectFiles(opts.paths) : [];
@@ -4144,6 +4230,30 @@ for (const [key, ctx] of contexts) {
 
 let renderNotRun = null;
 let domInventories = {};
+if (opts.renderMcp) {
+  const htmlFiles = files.filter((f) => extname(f).toLowerCase() === '.html');
+  const targets = [...htmlFiles.map((f) => pathToFileURL(f).href), ...opts.urls];
+  const mcpPlan = {
+    tool: 'Chrome DevTools MCP',
+    instruction: 'For each URL below: (1) call navigate_page to load it, (2) take screenshots at viewport widths 375, 1280, and 1440 (height 900), (3) check the render-tier gates listed, (4) report findings back to sloplint JSON format.',
+    renderGates: ['80', '81', 'F17', 'F18', 'F19', 'F20', 'F25', '44b', '44c'],
+    gateDescriptions: {
+      '80': 'Drawn SVG illustration: inline SVG 120px+ with 3+ curves or fills and no text (not a chart/map/diagram)',
+      '81': 'Empty picture: gradient block 300x200px+ with no image, video or real product UI',
+      'F17': 'Text squeezed to a sliver: under 16 characters wide over 4+ lines at 1440px',
+      'F18': 'data-slot rendering under 40px in either dimension at 1440px',
+      'F19': 'More than 3 font weights in running use at render time',
+      'F20': 'Grid or wrapping row leaving one item alone on its last row under a fuller row',
+      'F25': 'Content hidden on mobile: 40+ words visible at 1440px but hidden at 375px',
+      '44b': 'Hero content not all visible at 1280x800 without scrolling',
+      '44c': 'Hero not exactly one screen tall at 1440x900, or visual not beside text',
+    },
+    urls: targets,
+    howToReport: 'For each finding: { gate, grade: "FAIL"|"WARN", file: <url>, line: 1, evidence: <description>, fix: <suggestion> }',
+  };
+  console.log(JSON.stringify(mcpPlan, null, 2));
+  process.exit(0);
+}
 if (opts.render) {
   const isShell = (f) => { try { const x = readFileSync(f, 'utf8'); return /<script\b[^>]*type\s*=\s*["']module["'][^>]*\bsrc\s*=\s*["'][^"']+\.(?:tsx?|jsx?|mjs|vue|svelte)["']/i.test(x); } catch { return false; } };
   const htmlFiles = files.filter((f) => extname(f).toLowerCase() === '.html' && !(opts.urls.length && isShell(f)));

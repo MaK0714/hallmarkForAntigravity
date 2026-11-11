@@ -1,10 +1,8 @@
 ---
 name: hallmark
-description: "Design skill for websites and new pages that look designed, not generated. Use when the user asks to build or design something new, or names Hallmark. Never use it on an existing design unless the user names Hallmark, as in `/hallmark redesign <path>`."
+description: "Design skill for websites and new pages that look designed, not generated. Use when the user asks to build or design something new, or names Hallmark or hallmarkForAntigravity. Never use it on an existing design unless the user names Hallmark, as in `/hallmark redesign <path>`."
 argument-hint: "<prompt> | redesign <path> | audit <path>"
 version: 2.0.0
-metadata:
-  opencode/slash: "true"
 ---
 
 # Hallmark
@@ -49,7 +47,7 @@ Above the Floor, a **Reflex** gate is a default a model falls into, waivable on 
 
 **Verbs,** only when the user names Hallmark: `redesign <target>` (a full redesign keeping content and wiring) and `audit <target>` (a report); read [`references/redesign.md`](references/redesign.md) first. Any other change to an existing design is not a Hallmark run: do it as asked, in the project's own system.
 
-Codex CLI and OpenCode read `references/flow.md` § Harnesses first; other harnesses run this file as written.
+Antigravity runs this skill as written, executing the edit-time hook via `hooks.json` and delegating reviews to subagents.
 
 ### 0. Pre-flight
 

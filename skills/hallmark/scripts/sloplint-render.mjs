@@ -120,7 +120,7 @@ export async function renderCheck(htmlFiles, metaIn) {
     } catch {}
   }
   if (!puppeteer) {
-    const none = []; none.failed = failed; none.notRun = 'no puppeteer-core found locally, globally or via HALLMARK_PUPPETEER';
+    const none = []; none.failed = failed; none.notRun = 'puppeteer-core not installed (npm i -D puppeteer-core). Antigravity users: run sloplint with --render-mcp or use the Chrome DevTools MCP (navigate_page and screenshot at widths 375, 1280, 1440)';
     return none;
   }
   let chrome = [process.env.CHROME_PATH, ...CHROMES].find((p) => p && existsSync(p)) || null;

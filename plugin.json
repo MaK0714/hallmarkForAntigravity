@@ -1,0 +1,30 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "hallmark",
+  "displayName": "Hallmark",
+  "version": "2.0.0",
+  "description": "Design skill for websites and new pages that look designed, not generated. A hard floor against AI slop, 50 catalog themes, custom direction, and browser-tested craft gates. Powered by Together AI.",
+  "logo": "site/apple-touch-icon.png",
+  "author": {
+    "name": "Together AI",
+    "url": "https://www.usehallmark.com"
+  },
+  "homepage": "https://www.usehallmark.com",
+  "repository": "https://github.com/Nutlope/hallmark",
+  "license": "MIT",
+  "suggestedPrompts": [
+    "Use Hallmark to build a landing page for my product",
+    "Use Hallmark to redesign this existing page",
+    "Use Hallmark to audit this page for AI-generated design patterns"
+  ],
+  "keywords": [
+    "design",
+    "ui",
+    "landing-page",
+    "redesign",
+    "anti-ai-slop",
+    "themes",
+    "antigravity",
+    "together-ai"
+  ]
+}
