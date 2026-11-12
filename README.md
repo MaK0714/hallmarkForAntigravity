@@ -12,6 +12,55 @@ Made by Together AI.
 
 Hallmark holds a hard floor and then gets out of the way. It deals three themes from a catalog of fifty materials, builds the page around what the visitor came to do, and lints the result in a real browser against the tells that read as machine-made: the eyebrow above every heading, tracked-capital labels, one coloured word in a headline, a page of empty frames or nothing but photographs, a hero that misses its screen, an email sign-up at the end of every page, a form that says thanks without sending anything. A fresh-context reviewer gets the last word.
 
+---
+
+## What is Hallmark? (The 30-Second Explainer)
+
+When AI models build web pages today, they almost always produce **AI slop**:
+- Dark mode pages with fluorescent purple/indigo gradients.
+- Floating translucent glassmorphism cards with glowing borders.
+- Pill badges like `★ Next-Gen AI Platform` above every heading.
+- Identical 3-column feature grids with single-word titles (`Fast`, `Secure`, `Scalable`).
+- Fake metrics (`10,000+ teams trust us`) and robotic buzzwords (`Unlock your potential`).
+
+**Hallmark fixes this.** It is an automated design skill and linting engine for **Google Antigravity**. It forces the AI to design websites that look like human-crafted products with distinct typography, real materials (50 curated themes), authentic layouts, and strict background checks that automatically reject AI slop before it ever touches your screen.
+
+---
+
+## Step-by-Step: How Anyone Can Use It
+
+If you are new to Google Antigravity plugins, here is the exact 4-step workflow:
+
+### Step 1: Install Hallmark into Antigravity
+Run these two commands in your terminal:
+
+```bash
+git clone https://github.com/MaK0714/hallmarkForAntigravity.git ~/.gemini/config/plugins/hallmarkForAntigravity
+node ~/.gemini/config/plugins/hallmarkForAntigravity/skills/hallmark/scripts/install.mjs
+```
+
+This installs Hallmark globally as an active Antigravity plugin with its 50 themes and automated edit-time linting hooks. (Requires Node 18 or later).
+
+### Step 2: Open Your Project in Google Antigravity
+Open Google Antigravity and open any existing project folder, or create a fresh empty directory for a new site.
+
+### Step 3: Tell Antigravity What to Build
+You do not need to memorize complex CLI flags. Just prompt naturally in the chat and mention **Hallmark**:
+
+- **Build a new website:**
+  > *"Use Hallmark to build a modern SaaS landing page for an artisanal coffee roastery in Brooklyn."*
+- **Redesign an existing website (keeps your logic and forms intact):**
+  > *"Use Hallmark to redesign index.html with a clean editorial look."*
+- **Audit your current site for AI design tells:**
+  > *"Use Hallmark to audit my homepage and check for AI slop and accessibility issues."*
+
+### Step 4: What Happens Behind the Scenes
+1. **Picks a Material:** Hallmark selects 3 distinctive themes matching your domain (or invents a bespoke custom style tailored to your brand).
+2. **Assembles the Page:** It builds the hero, typography, layout, and copy around what your real visitors need to accomplish.
+3. **Automated Slop-Buster Hook:** Every time Antigravity writes or edits code, Hallmark background hooks run 80+ strict AST and visual checks. If the model slips into generic cliches, fake stats, or bad contrast, the hook flags it and forces the model to fix it before handing it to you.
+
+---
+
 The gates come in tiers. The **Floor** never ships (contrast, focus, reduced motion, invented facts, a broken phone layout). **Reflex** gates are the defaults a model falls into; a build with a reason may overrule one on the record. **Finish** checks are craft detail that never blocks a ship.
 
 ## New in v2
@@ -82,22 +131,48 @@ Hallmark never starts on a design that already exists unless you name it:
 
 A full redesign keeps the content and the wiring and changes the system and the layout; say *keep the layout* for a restyle or *polish* for only the tells. `sloplint --before` records every link, field, handler and heading first, `sloplint --kept` fails the redesign if one went missing, and the handoff is a side-by-side before and after.
 
-## Install
+## Advanced Usage & Team Setup
+
+### Direct CLI Linting (Without Antigravity Chat)
+
+You can run Hallmark's AST linter directly against any website folder or HTML file from your terminal:
 
 ```bash
-node skills/hallmark/scripts/install.mjs
+node ~/.gemini/config/plugins/hallmarkForAntigravity/skills/hallmark/scripts/sloplint.mjs ./path-to-your-site
 ```
 
-Installs Hallmark for Google Antigravity into `~/.gemini/config/plugins/hallmark` with its plugin manifest, skills, and edit-time linting hooks. Needs Node 18 or later. The browser checks (`sloplint --render`, screenshots) also need `npm i -g puppeteer-core` and Chrome; without them the static checks still run.
+To run full browser-rendered visual checks (layout shifts, contrast at 8 screen widths, scroll bounds), ensure Chrome is installed and pass `--render`:
 
-| Harness | Lands in | Invoke |
-| --- | --- | --- |
-| Google Antigravity | `~/.gemini/config/plugins/hallmark` | `/hallmark <prompt>` or describe a new build |
+```bash
+node ~/.gemini/config/plugins/hallmarkForAntigravity/skills/hallmark/scripts/sloplint.mjs ./path-to-your-site --render
+```
 
-- **Workspace-only install:** place this repository or copy its skill into `.agents/skills/hallmark` and configure `.agents/hooks.json`.
-- **From a clone:** `node skills/hallmark/scripts/install.mjs` validates every theme and reference before it copies; `install-hook.mjs` adds an edit-time Floor check to Antigravity.
-- **Lint any page:** `node skills/hallmark/scripts/sloplint.mjs <file-or-dir> --render`.
-- **If it does not fire on its own,** name it: *use hallmark to build ...* or *use hallmarkForAntigravity*.
+---
+
+### Per-Project / Team Repository Setup
+
+If you want Hallmark bundled directly inside a specific project repository so your entire team gets it automatically without installing global plugins:
+
+```bash
+# In your project's root folder:
+mkdir -p .agents/skills
+cp -r /path/to/hallmarkForAntigravity/skills/hallmark .agents/skills/hallmarkForAntigravity
+cp /path/to/hallmarkForAntigravity/hooks.json .agents/hooks.json
+```
+
+---
+
+## Acknowledgements & Upstream
+
+This project is an independent Google Antigravity port of **[Hallmark](https://github.com/Nutlope/hallmark)** created by **[Hassan El Mghari (@Nutlope)](https://github.com/Nutlope)** and the team at **Together AI**.
+
+- **Original repository:** [github.com/Nutlope/hallmark](https://github.com/Nutlope/hallmark)
+- **Original licence:** MIT Licence
+- **This Antigravity port adds:**
+  - Native Google Antigravity plugin and manifest architecture (`plugin.json`, `hooks.json`).
+  - Automated `PostToolUse` background hook gating on every file write and edit.
+  - Hardened anti-slop gates catching unverified review ratings, anonymous testimonials, glued arrow buttons, and modern AI cliches.
+  - Chrome DevTools MCP visual inspection fallback.
 
 ## Inspired by
 
