@@ -42,3 +42,21 @@ test('validate rejects an invalid Build hint in a CRLF file, like it does in LF'
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('fit-only shortlist keeps the best match after a recent use', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'hallmark-theme-fit-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const cli = fileURLToPath(new URL('./theme.mjs', import.meta.url));
+  const deal = (...flags) => {
+    const result = spawnSync(process.execPath, [cli, 'deal', '--genre', 'editorial', '--prompt', 'architect architecture studio', '--json', ...flags], { cwd: dir, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout);
+  };
+  const before = deal('--fit-only');
+  const match = before.deal[0];
+  writeFileSync(join(dir, '.hallmark', 'log.json'), JSON.stringify([{ theme: match.name }]));
+  const after = deal('--fit-only');
+  assert.deepEqual(after.deal.map((theme) => theme.slug), before.deal.map((theme) => theme.slug));
+  assert.ok(after.deal.every((theme, index) => !index || theme.fit <= after.deal[index - 1].fit));
+  assert.ok(deal().deal.every((theme) => theme.slug !== match.slug));
+});

@@ -8,8 +8,6 @@ const CHROMES = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
 const isUrl = (t) => /^https?:\/\//.test(t);
 const slugOf = (t) => isUrl(t) ? t.replace(/^https?:\/\//, '').replace(/[^\w.-]+/g, '-').replace(/-+$/, '') : basename(t, '.html');
 
-const SHOTS = [];
-let SHOT_DIR = 'shots';
 const frames = (page) => page.evaluate(async () => { if (document.fonts && document.fonts.status !== 'loaded') await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 3000))]); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); }).catch(() => {});
 const settleImages = (page) => page.evaluate(async () => { for (const i of document.querySelectorAll('img[loading="lazy"]')) i.loading = 'eager'; for (let y = 0; y < document.documentElement.scrollHeight; y += 700) { window.scrollTo(0, y); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); } window.scrollTo(0, 0); const waiting = [...document.images].filter((i) => !i.complete); await Promise.race([Promise.all(waiting.map((i) => new Promise((r) => { i.addEventListener('load', r, { once: true }); i.addEventListener('error', r, { once: true }); }))), new Promise((r) => setTimeout(r, 15000))]); await Promise.all([...document.images].map((i) => (i.complete && i.naturalWidth && i.decode ? i.decode().catch(() => {}) : null))); }).catch(() => {});
 function contrast(a, b) {
@@ -77,23 +75,22 @@ async function pixelBehind(page, probe) {
   }
 }
 
-async function shoot(page, file, tag, fullPage) {
-  try {
-    const dir = isUrl(file) ? join(process.cwd(), '.hallmark', SHOT_DIR) : join(dirname(file), '.hallmark', SHOT_DIR);
-    mkdirSync(dir, { recursive: true });
-    const ignore = join(dirname(dir), '.gitignore');
-    if (!existsSync(ignore)) writeFileSync(ignore, 'shots/\nbefore/\nbefore.json\nbefore.txt\ncompare.html\n');
-    const out = join(dir, `${slugOf(file)}-${tag}.png`);
-    await page.screenshot({ path: out, fullPage });
-    SHOTS.push(out);
-  } catch {}
+async function shoot(page, file, tag, fullPage, shotDir, screenshots) {
+  const dir = join(isUrl(file) ? process.cwd() : dirname(file), '.hallmark', shotDir);
+  mkdirSync(dir, { recursive: true });
+  const ignore = join(dirname(dir), '.gitignore');
+  if (!existsSync(ignore)) writeFileSync(ignore, 'shots/\nbefore/\nbefore.json\nbefore.txt\ncompare.html\n');
+  const out = join(dir, `${slugOf(file)}-${tag}.png`);
+  await page.screenshot({ path: out, fullPage });
+  screenshots.push(out);
 }
 
 export async function renderCheck(htmlFiles, metaIn) {
   const failed = [];
   const meta = { genre: null, postureByFile: {}, heroPostureByFile: {}, photoShapeByFile: {}, jobByFile: {}, stage: 'page', scope: 'page', before: false, ...(metaIn || {}) };
   const heroOnly = meta.stage === 'hero';
-  SHOT_DIR = meta.before ? 'before' : 'shots';
+  const shotDir = meta.before ? 'before' : 'shots';
+  const screenshots = [];
   const inventories = {};
   let puppeteer = null;
   const { createRequire } = await import('node:module');
@@ -171,9 +168,9 @@ export async function renderCheck(htmlFiles, metaIn) {
           await page.setViewport({ width, height: width === 375 && heroOnly ? 812 : 800 });
           await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
           await frames(page);
-          if (width === 1280) await shoot(page, file, `${prefix}1280x800`, false);
+          if (width === 1280) await shoot(page, file, `${prefix}1280x800`, false, shotDir, screenshots);
           if (width === 375 && !heroOnly) { await settleImages(page); await frames(page); }
-          if (width === 375) await shoot(page, file, heroOnly ? 'hero-375x812' : '375', !heroOnly);
+          if (width === 375) await shoot(page, file, heroOnly ? 'hero-375x812' : '375', !heroOnly, shotDir, screenshots);
           if (!heroOnly && (width === 375 || width === 1280)) for (const f of await page.evaluate(lineBreaks).catch(() => [])) findings.push({ ...f, file, line: 1 });
           const res = await page.evaluate(observe, width === 1280, pageMeta);
           const measured = new Map();
@@ -192,10 +189,10 @@ export async function renderCheck(htmlFiles, metaIn) {
           await page.setViewport({ width: w, height: h });
           await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
           await frames(page);
-          await shoot(page, file, `${prefix}${w}x${h}`, false);
+          await shoot(page, file, `${prefix}${w}x${h}`, false, shotDir, screenshots);
           if (!heroOnly && w === 1440) {
             await settleImages(page);
-            await shoot(page, file, '1440-full', true);
+            await shoot(page, file, '1440-full', true, shotDir, screenshots);
           }
           await frames(page);
           const res = await page.evaluate(observeSpace, w === 1440, heroOnly, meta.heroPostureByFile[file] || '', !!meta.photoShapeByFile[file], meta.jobByFile[file] || '');
@@ -261,7 +258,7 @@ export async function renderCheck(htmlFiles, metaIn) {
   } finally {
     await browser.close().catch(() => {});
   }
-  if (SHOTS.length) console.error(heroOnly ? `render tier: ${SHOTS.length} hero screenshots in ${dirname(SHOTS[0])} (1280x800, 1440x900, 1920x1080 and 375x812 first screens)` : `render tier: ${SHOTS.length} screenshots in ${dirname(SHOTS[0])} (1280x800, 1440x900, 1920x1080 folds; 1440 and 375 full pages)`);
+  if (screenshots.length) console.error(heroOnly ? `render tier: ${screenshots.length} hero screenshots in ${dirname(screenshots[0])} (1280x800, 1440x900, 1920x1080 and 375x812 first screens)` : `render tier: ${screenshots.length} screenshots in ${dirname(screenshots[0])} (1280x800, 1440x900, 1920x1080 folds; 1440 and 375 full pages)`);
 
   const seen = new Set();
   const kept = findings.filter((f) => {
@@ -272,6 +269,7 @@ export async function renderCheck(htmlFiles, metaIn) {
   });
   kept.failed = failed;
   kept.inventories = inventories;
+  kept.screenshots = screenshots;
   return kept;
 }
 

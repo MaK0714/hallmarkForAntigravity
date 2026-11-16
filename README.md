@@ -10,22 +10,7 @@ Made by Together AI.
   <img src="site/OG-hallmark.png" alt="Hallmark, the design skill that ends AI slop" />
 </p>
 
-Hallmark holds a hard floor and then gets out of the way. It deals three themes from a catalog of fifty materials, builds the page around what the visitor came to do, and lints the result in a real browser against the tells that read as machine-made: the eyebrow above every heading, tracked-capital labels, one coloured word in a headline, a page of empty frames or nothing but photographs, a hero that misses its screen, an email sign-up at the end of every page, a form that says thanks without sending anything. A fresh-context reviewer gets the last word.
-
----
-
-## What is Hallmark? (The 30-Second Explainer)
-
-When AI models build web pages today, they almost always produce **AI slop**:
-- Dark mode pages with fluorescent purple/indigo gradients.
-- Floating translucent glassmorphism cards with glowing borders.
-- Pill badges like `★ Next-Gen AI Platform` above every heading.
-- Identical 3-column feature grids with single-word titles (`Fast`, `Secure`, `Scalable`).
-- Fake metrics (`10,000+ teams trust us`) and robotic buzzwords (`Unlock your potential`).
-
-**Hallmark fixes this.** It is an automated design skill and linting engine for **Google Antigravity**. It forces the AI to design websites that look like human-crafted products with distinct typography, real materials (50 curated themes), authentic layouts, and strict background checks that automatically reject AI slop before it ever touches your screen.
-
----
+Hallmark designs around the visitor's task and the strongest real material available. It uses the project's visual system for targeted edits, offers a catalog when a new design needs references, and compares desktop and mobile screenshots before keeping a change to an existing site.
 
 ## Step-by-Step: How Anyone Can Use It
 
@@ -35,11 +20,12 @@ If you are new to Google Antigravity plugins, here is the exact 4-step workflow:
 Run these two commands in your terminal:
 
 ```bash
-git clone https://github.com/MaK0714/hallmarkForAntigravity.git ~/.gemini/config/plugins/hallmarkForAntigravity
-node ~/.gemini/config/plugins/hallmarkForAntigravity/skills/hallmark/scripts/install.mjs
+git clone https://github.com/MaK0714/hallmarkForAntigravity.git
+cd hallmarkForAntigravity
+node skills/hallmark/scripts/install.mjs
 ```
 
-This installs Hallmark globally as an active Antigravity plugin with its 50 themes and automated edit-time linting hooks. (Requires Node 18 or later).
+This installs Hallmark globally as an active Antigravity plugin with its optional themes and advisory edit-time lint hook. (Requires Node 18 or later).
 
 ### Step 2: Open Your Project in Google Antigravity
 Open Google Antigravity and open any existing project folder, or create a fresh empty directory for a new site.
@@ -54,23 +40,9 @@ You do not need to memorize complex CLI flags. Just prompt naturally in the chat
 - **Audit your current site for AI design tells:**
   > *"Use Hallmark to audit my homepage and check for AI slop and accessibility issues."*
 
-### Step 4: What Happens Behind the Scenes
-1. **Picks a Material:** Hallmark selects 3 distinctive themes matching your domain (or invents a bespoke custom style tailored to your brand).
-2. **Assembles the Page:** It builds the hero, typography, layout, and copy around what your real visitors need to accomplish.
-3. **Automated Slop-Buster Hook:** Every time Antigravity writes or edits code, Hallmark background hooks run 80+ strict AST and visual checks. If the model slips into generic cliches, fake stats, or bad contrast, the hook flags it and forces the model to fix it before handing it to you.
+### Step 4: Review the result
 
----
-
-The gates come in tiers. The **Floor** never ships (contrast, focus, reduced motion, invented facts, a broken phone layout). **Reflex** gates are the defaults a model falls into; a build with a reason may overrule one on the record. **Finish** checks are craft detail that never blocks a ship.
-
-## New in v2
-
-- **Fifty themes.** Each is a material (paper, type, colour, surfaces, its own components and texture) with a picture of a finished page, and the build lays out its own page in it.
-- **Built from the job.** A booking page books, a shop sells, a newsletter subscribes: the action sits where the category puts it, and the page ends on it.
-- **Custom.** Ask for a custom page and Hallmark designs from your prompt alone, under the same rules and checks.
-- **Your real product.** Point it at a URL, a dev server or an app and it captures the screenshots itself.
-- **Real photographs.** 755 openly licensed photos, picked per subject and credited on the page.
-- **Redesign and audit.** `/hallmark redesign <path>` rebuilds a page and keeps its content and wiring; `/hallmark audit <path>` only reports.
+Hallmark checks the live route at desktop and mobile widths and tests the primary interaction. The edit hook offers static diagnostics for stamped Hallmark files. Existing-site changes are kept when the before-and-after comparison shows a clear improvement in the requested area and preserves the rest of the experience.
 
 ## Themes
 
@@ -105,31 +77,21 @@ The gates come in tiers. The **Floor** never ships (contrast, focus, reduced mot
   </tr>
 </table>
 
-Ten of the fifty. A theme is a material, not a plan: it never says what a page contains or in what order, so two prompts in one theme make two different pages. Each is one file of at most 8 KB in [`references/themes/`](skills/hallmark/references/themes/) with a picture beside it; a build reads exactly one. See them all at [usehallmark.com](https://www.usehallmark.com).
+Ten of the fifty. Each theme offers a color palette, type choices, surfaces and an example in [`references/themes/`](skills/hallmark/references/themes/). Choose a theme by how well it serves your content and audience. See them all at [usehallmark.com](https://www.usehallmark.com).
 
-## Custom
+## New and existing designs
 
-Say **custom** and Hallmark drops the themes: no plan, no components, no palette recipe, only the floor, the gates and a short direction in [`direction.md`](skills/hallmark/references/direction.md) to find one idea that only this client has and let it run the page.
+For a new site, share the visitor's task, the brand and any product screenshots or photography. Hallmark can derive a direction from that material, or use a named theme when you request one.
 
-## How a build runs
-
-1. Pre-flight reads the project (fonts, palette, framework, a locked `design.md`) and asks once for the material: photos, screenshots, real numbers. Nothing is invented.
-2. `scripts/theme.mjs deal` offers three themes that fit the prompt and clear the log; `draw` deals the page's anatomy from its job.
-3. The hero is built alone, rendered and reviewed cold before the rest of the page exists.
-4. `scripts/sloplint.mjs --render` checks the page at eight widths, then a subagent reviews it with fresh eyes.
-
-Each page is self-contained HTML and CSS, stamped in its first CSS comment with the decisions it took.
-
-## Redesign
-
-Hallmark never starts on a design that already exists unless you name it:
+For an existing site, choose the scope in Antigravity:
 
 ```
-/hallmark redesign ./src/app
-/hallmark audit ./index.html
+/hallmarkForAntigravity audit ./index.html
+/hallmarkForAntigravity polish ./index.html: improve the mobile booking controls
+/hallmarkForAntigravity redesign ./src/app: change the composition and visual system
 ```
 
-A full redesign keeps the content and the wiring and changes the system and the layout; say *keep the layout* for a restyle or *polish* for only the tells. `sloplint --before` records every link, field, handler and heading first, `sloplint --kept` fails the redesign if one went missing, and the handoff is a side-by-side before and after.
+An audit reports findings. Polish starts within the current visual system. An explicit redesign can change the stated composition or identity while preserving the required content and behavior. Hallmark keeps the original when a candidate introduces a material regression or the comparison is inconclusive.
 
 ## Advanced Usage & Team Setup
 
@@ -141,10 +103,10 @@ You can run Hallmark's AST linter directly against any website folder or HTML fi
 node ~/.gemini/config/plugins/hallmarkForAntigravity/skills/hallmark/scripts/sloplint.mjs ./path-to-your-site
 ```
 
-To run full browser-rendered visual checks (layout shifts, contrast at 8 screen widths, scroll bounds), ensure Chrome is installed and pass `--render`:
+To run full browser-rendered visual checks (layout shifts, contrast at 8 screen widths, scroll bounds), ensure Chrome and `puppeteer-core` are available and pass `--require-render`:
 
 ```bash
-node ~/.gemini/config/plugins/hallmarkForAntigravity/skills/hallmark/scripts/sloplint.mjs ./path-to-your-site --render
+node ~/.gemini/config/plugins/hallmarkForAntigravity/skills/hallmark/scripts/sloplint.mjs ./path-to-your-site --advisory --require-render --json
 ```
 
 ---
@@ -157,7 +119,7 @@ If you want Hallmark bundled directly inside a specific project repository so yo
 # In your project's root folder:
 mkdir -p .agents/skills
 cp -r /path/to/hallmarkForAntigravity/skills/hallmark .agents/skills/hallmarkForAntigravity
-cp /path/to/hallmarkForAntigravity/hooks.json .agents/hooks.json
+node .agents/skills/hallmarkForAntigravity/scripts/install-hook.mjs
 ```
 
 ---

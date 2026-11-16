@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, basename } from "node:path";
 
 const OK = (obj = {}) => { process.stdout.write(JSON.stringify(obj)); process.exit(0); };
 
@@ -20,12 +20,11 @@ function main() {
   let src = "";
   try { src = readFileSync(filePath, "utf8"); } catch { return OK(); }
   if (src.length === 0) return OK();
-  const inHallmarkProject = () => { let d = dirname(filePath); for (let i = 0; i < 8; i++) { if (existsSync(join(d, ".hallmark"))) return true; const up = dirname(d); if (up === d) break; d = up; } return false; };
-  const looksHallmark = /\/\*\s*Hallmark/.test(src) || inHallmarkProject();
-  if (!looksHallmark) return OK();
+  if (payload.error || !/\/\*\s*Hallmark/.test(src)) return OK();
   const gm = src.match(/genre:\s*(editorial|modern-minimal|atmospheric|playful)/i);
-  const args = [filePath, "--json", "--tier", "floor"];
+  const args = [filePath, "--json", "--advisory", "--tier", "floor"];
   if (gm) args.push("--genre", gm[1].toLowerCase());
+  if (/shape:\s*app screen/i.test(src)) args.push("--scope", "app");
   if (/·\s*component:/i.test(src) || lower.endsWith(".preview.html")) args.push("--scope", "component");
   const sloplint = join(dirname(fileURLToPath(import.meta.url)), "sloplint.mjs");
   let out = "";
@@ -39,10 +38,10 @@ function main() {
   try { report = JSON.parse(out); } catch { return OK(); }
   const fails = (report?.findings ?? []).filter((f) => f.grade === "FAIL");
   if (fails.length === 0) return OK();
-  const name = filePath.split("/").pop();
+  const name = basename(filePath);
   const lines = fails.slice(0, 10).map((f) => `- gate ${f.gate} (line ${f.line}): ${f.evidence} -> ${f.fix}`);
   const more = fails.length > 10 ? `\n  (+${fails.length - 10} more)` : "";
-  const ctx = `Hallmark Floor check on ${name}: ${fails.length} FAIL${fails.length === 1 ? "" : "s"}.\n${lines.join("\n")}${more}\nFix these now; the Reflex and Finish tiers run at Step 7.`;
+  const ctx = `Hallmark advisory check on ${name}: ${fails.length} FAIL${fails.length === 1 ? "" : "s"}.\n${lines.join("\n")}${more}\nConfirm each defect in the browser and address it when it affects the requested scope.`;
   process.stderr.write(`${ctx}\n`);
   return OK({});
 }

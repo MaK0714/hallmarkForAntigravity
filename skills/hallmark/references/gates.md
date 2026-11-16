@@ -1,8 +1,8 @@
 # Gates
 
-The one list of what Hallmark refuses. § 1 to § 4 load at Step 4 (§ 1 to § 3 drive the pre-emit pass, § 4 the build); § 5, the Finish checks and the judged clauses, waits for the Step 7 walk, § 6 for the two reviews. `scripts/sloplint.mjs` implements every gate tagged M and derives its tier map from this file, which wins on any disagreement.
+The legacy lint rules below remain available in strict mode. Hallmark's design workflow uses `--advisory`: subjective style and house-rule findings are notes. Inspect functional, accessibility, responsive and truthfulness findings in context and fix confirmed defects within scope. Existing-site changes also require the comparison in [redesign.md](redesign.md).
 
-## 1. How a gate binds
+## 1. Legacy tiers
 
 Every gate carries a **tier**, which says whether you may disagree with it:
 

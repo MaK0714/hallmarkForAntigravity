@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
+import { hallmarkHooks, pluginHookCommand } from "./hook-config.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = path.dirname(HERE);
@@ -51,9 +52,11 @@ function installTo(target) {
   const dir = typeof target === "string" ? target : target.dir;
   const isPlugin = typeof target === "object" && Boolean(target.plugin);
   if (DRY) return console.log(`  would install -> ${dir}`);
-  const tmp = dir + ".tmp-install";
-  fs.rmSync(tmp, { recursive: true, force: true });
-  fs.mkdirSync(tmp, { recursive: true });
+  const parent = path.dirname(dir);
+  fs.mkdirSync(parent, { recursive: true });
+  const staging = fs.mkdtempSync(path.join(parent, ".hallmark-install-"));
+  const tmp = path.join(staging, "plugin");
+  fs.mkdirSync(tmp);
   const skillDest = isPlugin ? path.join(tmp, "skills", "hallmark") : tmp;
   for (const item of PAYLOAD) {
     const src = path.join(SKILL_ROOT, item);
@@ -68,7 +71,7 @@ function installTo(target) {
       name: "hallmarkForAntigravity",
       displayName: "Hallmark for Antigravity",
       version: "2.0.0",
-      description: "Design skill for websites and new pages that look designed, not generated. A hard floor against AI slop, 50 catalog themes, custom direction, and browser-tested craft gates. Powered by Together AI.",
+      description: "Design skill for websites and new pages that look designed, not generated. Preservation-first edits, optional themes, and visual verification. Powered by Together AI.",
       logo: "skills/hallmark/assets/logo.png",
       author: {
         name: "Together AI",
@@ -79,33 +82,25 @@ function installTo(target) {
       license: "MIT",
       suggestedPrompts: [
         "Use Hallmark to build a landing page for my product",
-        "Use Hallmark to redesign this existing page",
-        "Use Hallmark to audit this page for AI-generated design patterns"
+        "Use Hallmark to audit or polish this page within its existing design system",
+        "Use Hallmark to redesign this existing page"
       ],
       keywords: ["design", "ui", "anti-ai-slop", "themes", "frontend", "antigravity"]
     };
     fs.writeFileSync(path.join(tmp, "plugin.json"), JSON.stringify(pluginManifest, null, 2) + "\n");
-    const hooksConfig = {
-      "hallmark-linter": {
-        "PostToolUse": [
-          {
-            "matcher": "write_file|edit_file",
-            "hooks": [
-              {
-                "type": "command",
-                "command": "node skills/hallmark/scripts/lint-hook.mjs",
-                "timeout": 15
-              }
-            ]
-          }
-        ]
-      }
-    };
+    const hooksConfig = hallmarkHooks(pluginHookCommand);
     fs.writeFileSync(path.join(tmp, "hooks.json"), JSON.stringify(hooksConfig, null, 2) + "\n");
   }
-  fs.rmSync(dir, { recursive: true, force: true });
-  fs.mkdirSync(path.dirname(dir), { recursive: true });
-  fs.renameSync(tmp, dir);
+  const previous = path.join(staging, "previous");
+  const hadPlugin = fs.existsSync(dir);
+  if (hadPlugin) fs.renameSync(dir, previous);
+  try {
+    fs.renameSync(tmp, dir);
+  } catch (error) {
+    if (hadPlugin) fs.renameSync(previous, dir);
+    throw error;
+  }
+  fs.rmSync(staging, { recursive: true, force: true });
   console.log(`  installed -> ${dir}`);
 }
 
@@ -148,4 +143,4 @@ for (const key of picked) {
   installTo(t);
 }
 
-console.log(`\nDone. Invoke in Antigravity as: /hallmark <prompt> or use hallmark to build ...`);
+console.log(`\nDone. Invoke in Antigravity as: /hallmarkForAntigravity <prompt> or use Hallmark to build ...`);

@@ -1,0 +1,70 @@
+[
+  {
+    "id": "couples-polish",
+    "fixture": "custom-couples-budget",
+    "prompt": "Make the keyboard focus indicator on the rent split slider easier to see. Keep the site's typography, palette, layout, copy and behavior. Limit the change to the slider focus styles.",
+    "editable": [
+      "styles.css"
+    ],
+    "checks": [
+      {
+        "click": ".bill__range",
+        "key": "ArrowRight",
+        "selector": "[data-out=you]",
+        "textChanges": true
+      }
+    ],
+    "focus": ".bill__range"
+  },
+  {
+    "id": "database-polish",
+    "fixture": "cobalt-database-client",
+    "prompt": "Improve the touch target of the Rowan and psql demo tabs on phones. Keep the visual system, desktop layout, copy and behavior. Limit the change to the mobile demo tab styles.",
+    "editable": [
+      "styles.css"
+    ],
+    "checks": [
+      {
+        "click": "label[for=v-psql]",
+        "selector": "#v-psql",
+        "checked": true
+      }
+    ]
+  },
+  {
+    "id": "bike-landing",
+    "prompt": "Build a public landing page for Tide Cycle Repair, a mobile bicycle mechanic in Bristol. Lead with the at-home tune-up and puncture repairs. People need to know if their area is covered and should be able to reach the coverage section via a link to #coverage. The service covers Clifton, Redland and Bedminster. Use these supplied facts.",
+    "checks": [
+      {
+        "click": "a[href=\"#coverage\"]",
+        "selector": "#coverage",
+        "hash": "#coverage"
+      }
+    ]
+  },
+  {
+    "id": "portfolio",
+    "prompt": "Build a portfolio for Mara Chen, an independent information designer looking for museum clients. Show three projects using typography and diagrams based on these descriptions: a two-floor museum wayfinding system, a folding map of a botanic garden and signage for a five-stop river walk. Visitors should reach the work via a link to #work. Use the supplied facts.",
+    "checks": [
+      {
+        "click": "a[href=\"#work\"]",
+        "selector": "#work",
+        "hash": "#work"
+      }
+    ]
+  },
+  {
+    "id": "dispatch-dashboard",
+    "prompt": "Build an internal city-library dispatch dashboard for a coordinator who needs to find overdue van deliveries. Use four sample rows and a working status filter with a control id of status-filter. On mobile the due time and branch names should stay easy to read. Show an empty result state. Use a select with values all and overdue, and tag each sample row with a data-status of overdue or on-time so the filter can be tested.",
+    "checks": [
+      {
+        "select": {
+          "selector": "#status-filter",
+          "value": "overdue"
+        },
+        "selector": "[data-status=on-time]",
+        "visible": false
+      }
+    ]
+  }
+]

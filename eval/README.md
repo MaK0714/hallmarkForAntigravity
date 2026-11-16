@@ -108,3 +108,22 @@ Per arm, on the enabled matrix:
 ## API keys
 
 The eval harness never uses your Anthropic key by default. Generation arms run on Together (GLM, Kimi stand-in); the baseline uses whatever `ANTHROPIC_API_KEY` you set only if you run that arm. The vision judge defaults to **operator mode** (`python3 judge.py`): it lists the screenshots for the Claude Code operator (Opus 4.8 on your subscription) to score by the rubric, spending nothing. `--provider together` runs an automated pass on a Together vision model; `--provider anthropic` is opt-in and the only path that touches your Anthropic key.
+
+## Antigravity CLI design benchmark
+
+`eval/antigravity.mjs` uses the same pinned model and brief for three arms: skill off, the pre-change Hallmark skill from a Git revision, and the revised skill from the current workspace. Each attempt gets a fresh Git workspace with its baseline recorded. It explicitly invokes Hallmark on the two skill arms. This measures outcomes after invocation. Auto-discovery should be checked separately in the Antigravity customization panel.
+
+The five briefs cover two tightly scoped edits to existing sites, a new landing page, a portfolio, and a dashboard. The default is three independent attempts per brief (45 generations). Start with the dry run to inspect the plan. Use a dedicated Antigravity CLI profile without a global Hallmark skill or temporarily disable its global plugin for the benchmark. The runner checks for globally enabled Hallmark and Modern Web Guidance, which can otherwise start its own shell workflow in every arm. Keep other customizations identical across arms. Set `HALLMARK_AGY` if `agy` is outside your path. Set `CHROME_PATH` for Chrome outside the default Linux path and use `HALLMARK_PUPPETEER` for an existing external installation of `puppeteer-core`.
+
+```bash
+node eval/antigravity.mjs --model <agy-model-id> --dry-run
+node eval/antigravity.mjs --model <agy-model-id> --brief couples-polish --repeats 1
+node eval/antigravity.mjs --model <agy-model-id>
+node eval/antigravity.mjs --score eval/runs/<session>
+```
+
+`--current <git-ref>` sets the baseline revision. The default is the last revision before the preservation-first changes. Set `--timeout <seconds>` to change the per-generation limit. Each generated directory includes a blind review gallery with anonymous candidate IDs, a ballot template, and private arm mappings and CLI logs. Have reviewers open only the gallery and ballot until scoring is complete. Enter `tie`, `original`, or a candidate ID as the preference. Grade hierarchy, brand fit and task clarity from 1 to 5 and answer the request, scope and regression fields. Prefer multiple independent reviews and score each ballot separately.
+
+The slider brief captures the keyboard-focused state at both viewport widths. The runner also exercises key browser interactions at desktop and mobile widths, checks recent edits against the requested file scope, and records incomplete runs, page errors and headless tool denials. File checks can detect an out-of-scope file change. Reviewers should also flag visual collateral changes within a permitted file. Track preference wins, original retained, confirmed regressions, unwanted changes and failed interactions across repetitions. Preference totals use complete three-arm rows with ballots. Incomplete runs remain visible in the technical counts.
+
+The headless generation pass hands off the draft or requested diff before browser review. The host runner checks for a non-empty entry and a scoped edit on edit briefs, then captures the output and runs interactions outside the agent sandbox. The manifest tracks CLI errors, artifact failure, capture, visual inspection and interaction verification separately. A draft written before a CLI timeout can still enter review if host verification passes. Use the blind gallery and ballot to perform the visual inspection.

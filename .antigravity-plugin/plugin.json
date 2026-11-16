@@ -3,7 +3,7 @@
   "name": "hallmarkForAntigravity",
   "displayName": "Hallmark for Antigravity",
   "version": "2.0.0",
-  "description": "Design skill for websites and new pages that look designed, not generated. A hard floor against AI slop, 50 catalog themes, custom direction, and browser-tested craft gates. Powered by Together AI.",
+  "description": "Design skill for websites with preservation-first edits, optional themes, and visual verification. Powered by Together AI.",
   "logo": "site/apple-touch-icon.png",
   "author": {
     "name": "Together AI",
@@ -14,8 +14,8 @@
   "license": "MIT",
   "suggestedPrompts": [
     "Use Hallmark to build a landing page for my product",
-    "Use Hallmark to redesign this existing page",
-    "Use Hallmark to audit this page for AI-generated design patterns"
+    "Use Hallmark to audit or polish this page within its existing design system",
+    "Use Hallmark to redesign this existing page"
   ],
   "keywords": [
     "design",

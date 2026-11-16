@@ -3,21 +3,19 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, realpat
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { hallmarkHooks, pluginHookCommand } from "./hook-config.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const HOOK_CMD = `node "${join(HERE, "lint-hook.mjs")}"`;
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
 
-const settingsPath = has("--global")
-  ? join(homedir(), ".gemini", "config", "plugins", "hallmark", "hooks.json")
+const globalPlugin = has("--global");
+const settingsPath = globalPlugin
+  ? join(homedir(), ".gemini", "config", "plugins", "hallmarkForAntigravity", "hooks.json")
   : join(process.cwd(), ".agents", "hooks.json");
 
-const hookEntry = {
-  matcher: "write_file|edit_file",
-  hooks: [{ type: "command", command: HOOK_CMD, timeout: 15 }],
-};
+const hookConfig = hallmarkHooks(globalPlugin ? pluginHookCommand : `node "${join(HERE, "lint-hook.mjs")}"`);
 
 function readSettings() {
   if (!existsSync(settingsPath)) return {};
@@ -29,7 +27,7 @@ function readSettings() {
 
 if (has("--print")) {
   console.log(`# add to ${settingsPath} :`);
-  console.log(JSON.stringify({ "hallmark-linter": { PostToolUse: [hookEntry] } }, null, 2));
+  console.log(JSON.stringify(hookConfig, null, 2));
   process.exit(0);
 }
 
@@ -58,10 +56,8 @@ if (has("--remove")) {
   process.exit(0);
 }
 
-settings["hallmark-linter"] = {
-  PostToolUse: [hookEntry],
-};
+Object.assign(settings, hookConfig);
 mkdirSync(dirname(settingsPath), { recursive: true });
 save();
 console.log(`installed the Hallmark edit-time lint hook into ${settingsPath}`);
-console.log(`it lints Hallmark .html and .css files, and .jsx, .tsx, .vue, .svelte and .astro files inside a project with a .hallmark folder, on write; it advises and never blocks. Remove with --remove.`);
+console.log(`it reports advisory defect diagnostics for stamped Hallmark files on write. Remove with --remove.`);

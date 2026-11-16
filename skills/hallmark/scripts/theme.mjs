@@ -21,7 +21,7 @@ const isSlug = (s) => /^[a-z0-9][a-z0-9-]*$/.test(s);
 
 function usage() {
   console.error(`usage:
-  node theme.mjs deal --genre <g> --prompt "<prompt>" [--log .hallmark/log.json] [--n 3] [--reroll 0] [--json]
+  node theme.mjs deal --genre <g> --prompt "<prompt>" [--log .hallmark/log.json] [--n 3] [--reroll 0] [--fit-only] [--json]
   node theme.mjs scaffold <slug> [--dealt "<n>/3, seed <seed>"] [--redesign polish|restyle|full] [--scope app] [--dir <beside the stylesheet>] [--force]
   node theme.mjs scaffold --custom | --brand [--redesign polish|restyle|full] [--scope app] [--dir <beside the stylesheet>] [--force]
   node theme.mjs check [--axes "<paper>/<display>/<accent>"] [--face "<display face>"] [--hue <accent hue>] [--log .hallmark/log.json]
@@ -226,7 +226,8 @@ function deal() {
   const reroll = Number(flag('reroll', 0));
   const log = readLog(flag('log', '.hallmark/log.json'));
   const themes = loadIndex();
-  const recent = log.slice(0, 3);
+  const fitOnly = has('fit-only');
+  const recent = fitOnly ? [] : log.slice(0, 3);
   const recentNames = new Set(recent.map((r) => String(r.theme || '').toLowerCase()));
   const lastAxes = recent[0] && recent[0].axes ? String(recent[0].axes) : null;
   const occupiedAxes = new Set(recent.map((r) => r.axes).filter(Boolean));
@@ -248,13 +249,16 @@ function deal() {
     return { t, fit, hits, blocked, sibling, r: rand() };
   });
   const pool = scored.filter((s) => !s.blocked).sort((a, b) => b.fit - a.fit || a.r - b.r);
+  const choose = (excluded) => fitOnly
+    ? pool.filter((candidate) => !excluded.has(candidate.t.slug)).slice(0, n)
+    : pickFrom(pool, n, excluded);
   const previously = new Set();
   for (let r = 0; r < reroll; r++) {
-    const hand = pickFrom(pool, n, previously);
+    const hand = choose(previously);
     if (!hand.length) break;
     for (const p of hand) previously.add(p.t.slug);
   }
-  const picked = pickFrom(pool, n, previously);
+  const picked = choose(previously);
   if (!picked.length) { console.error(`nothing left to deal at reroll ${reroll}; use a lower --reroll`); process.exit(1); }
 
   if (has('json')) { console.log(JSON.stringify({ seed: seedKey, genre, deal: picked.map((s) => ({ ...s.t, fit: s.fit, hits: s.hits })), avoided: [...recentNames] })); return; }

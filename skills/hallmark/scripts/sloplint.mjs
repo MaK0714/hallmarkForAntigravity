@@ -7,13 +7,15 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const GENRES = ['editorial', 'modern-minimal', 'atmospheric', 'playful'];
 const args = process.argv.slice(2);
-const opts = { genre: null, scope: 'page', json: false, render: false, renderMcp: false, tier: null, stage: 'page', before: false, kept: false, urls: [], paths: [] };
+const opts = { genre: null, scope: 'page', json: false, render: false, requireRender: false, renderMcp: false, advisory: false, tier: null, stage: 'page', before: false, kept: false, urls: [], paths: [] };
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '--genre') { opts.genre = args[++i]; }
   else if (a === '--scope') { opts.scope = args[++i]; }
   else if (a === '--json') { opts.json = true; }
   else if (a === '--render') { opts.render = true; }
+  else if (a === '--require-render') { opts.render = true; opts.requireRender = true; }
+  else if (a === '--advisory') { opts.advisory = true; }
   else if (a === '--render-mcp') { opts.renderMcp = true; }
   else if (a === '--before') { opts.before = true; }
   else if (a === '--kept') { opts.kept = true; }
@@ -25,7 +27,8 @@ for (let i = 0; i < args.length; i++) {
   else opts.paths.push(a);
 }
 function usage() {
-  console.error('usage: node sloplint.mjs <file-or-dir ...> [--genre editorial|modern-minimal|atmospheric|playful] [--scope page|component|app] [--stage hero|page] [--json] [--render] [--render-mcp] [--url http://localhost:3000] [--tier floor] [--before | --kept]');
+  console.error('usage: node sloplint.mjs <file-or-dir ...> [--genre editorial|modern-minimal|atmospheric|playful] [--scope page|component|app] [--stage hero|page] [--json] [--render | --require-render | --render-mcp] [--advisory] [--url http://localhost:3000] [--tier floor] [--before | --kept]');
+  console.error('--advisory treats stylistic findings as notes; --require-render exits 2 if capture is incomplete');
   console.error('--before records what the target says and does (.hallmark/before.json, screenshots in .hallmark/before); --kept checks a redesign against that record');
   console.error('reads .html and .css, plus .jsx .tsx .vue .svelte .astro (Tailwind class strings, cn/clsx/cva calls); skips node_modules, dist, build, coverage and dot folders');
 }
@@ -38,6 +41,7 @@ if (opts.genre && !GENRES.includes(opts.genre)) {
 if (!['page', 'component', 'app'].includes(opts.scope)) {
   console.error('--scope must be page, component or app'); process.exit(2);
 }
+if (opts.requireRender && opts.renderMcp) { console.error('--render-mcp prints a plan and cannot satisfy --require-render'); process.exit(2); }
 if (opts.before && opts.kept) { console.error('--before records and --kept compares; pass one'); process.exit(2); }
 
 const DOC_EXT = new Set(['.html', '.jsx', '.tsx', '.vue', '.svelte', '.astro']);
@@ -898,6 +902,13 @@ const STRUCTURAL = new Set(['6b', '8', '9', '32', '42', '44a', '44c', '58', '77'
 const SPACING = new Set(['24b', '59', '78']);
 const COPY_GATES = new Set(['19', '58', '69']);
 
+// Preserve defect diagnostics while allowing different design systems in advisory mode.
+const DEFECT_GATES = new Set(['26a', '27', '33', '40', '46a', '53', '62', '70', '73', 'render', 'kept']);
+function isDefect(gate, evidence) {
+  return DEFECT_GATES.has(gate)
+    || (gate === '34' && /scrollWidth|horizontal (scroll|overflow)/i.test(evidence))
+    || (gate === '76' && /missing (src|source)|(?:did|does) not load|no source|failed to load|broken image|no src/i.test(evidence));
+}
 const findings = [];
 function report(gate, grade, file, line, evidence, fix) {
   const g = String(gate);
@@ -918,6 +929,7 @@ function report(gate, grade, file, line, evidence, fix) {
   if (tier === 'finish' && grade !== 'FAIL' && ANSWERED.has(b)) grade = 'ANSWERED';
   if (grade === 'WARN' && (DISMISSED.has(b) || DISMISSED.has(gateNumber(b)))) grade = 'DISMISSED';
   if (grade === 'WARN' && tier === 'reflex' && waived) grade = 'WAIVED';
+  if (opts.advisory && ['FAIL', 'REFLEX', 'WARN', 'WAIVER'].includes(grade) && !isDefect(b, evidence)) grade = 'NOTE';
   findings.push({ gate: g, grade, tier, file: rel(file), line: line || 1, evidence: trunc(String(evidence), g === 'kept' ? 400 : 120), fix });
 }
 
@@ -4229,6 +4241,8 @@ for (const [key, ctx] of contexts) {
 }
 
 let renderNotRun = null;
+let renderFailures = [];
+let renderScreenshots = [];
 let domInventories = {};
 if (opts.renderMcp) {
   const htmlFiles = files.filter((f) => extname(f).toLowerCase() === '.html');
@@ -4262,6 +4276,11 @@ if (opts.render) {
     const mod = await import(new URL('./sloplint-render.mjs', import.meta.url).href);
     const extra = await mod.renderCheck([...htmlFiles, ...opts.urls], { genre: opts.genre, postureByFile, heroPostureByFile, photoShapeByFile, jobByFile, stage: opts.stage, selectors: opts.before || opts.kept ? Object.fromEntries([...new Set(contexts.flatMap(([, c]) => c.docs))].filter((d) => d.kind === 'html').map((d) => [d.file, scriptSelectors(d)])) : {}, scope: opts.scope === 'app' || [...waiversByKey.values()].some((x) => x.APPSCREEN) ? 'app' : opts.scope, before: opts.before });
     domInventories = extra.inventories || {};
+    renderFailures = extra.failed || [];
+    renderScreenshots = extra.screenshots || [];
+    if (new Set(renderScreenshots).size !== renderScreenshots.length) {
+      renderFailures.push({ file: 'render', message: 'screenshot paths collided; capture targets individually' });
+    }
     const allWaivers = { WAIVED: new Set([...waiversByKey.values()].flatMap((x) => [...x.WAIVED])), ANSWERED: new Set([...waiversByKey.values()].flatMap((x) => [...x.ANSWERED])), DISMISSED: new Set([...waiversByKey.values()].flatMap((x) => [...(x.DISMISSED || [])])), VERBATIM: [...waiversByKey.values()].some((x) => x.VERBATIM), APPSCREEN: [...waiversByKey.values()].some((x) => x.APPSCREEN), LAYOUT_KEPT: [...waiversByKey.values()].map((x) => x.LAYOUT_KEPT).find(Boolean) || false };
     for (const f of extra) {
       const w = /^https?:/.test(f.file) ? allWaivers : (waiversByKey.get(f.file) || waiversByKey.get(dirname(f.file)));
@@ -4273,13 +4292,14 @@ if (opts.render) {
       LAYOUT_KEPT = (w && w.LAYOUT_KEPT) || false;
       report(f.gate, f.grade === 'REFLEX' ? 'FAIL' : f.grade, f.file, f.line, f.evidence, f.fix);
     }
-    for (const x of extra.failed || []) { WAIVED = new Set(); ANSWERED = new Set(); DISMISSED = new Set(); VERBATIM = false; APPSCREEN = false; LAYOUT_KEPT = false; report('render', 'FAIL', x.file, 1, `the page did not render (${trunc(x.message, 60)}); its render gates did not run`, 'Fix the page or the URL and rerun; an unrendered page is never a pass'); }
+    for (const x of renderFailures) { WAIVED = new Set(); ANSWERED = new Set(); DISMISSED = new Set(); VERBATIM = false; APPSCREEN = false; LAYOUT_KEPT = false; report('render', 'FAIL', x.file, 1, `the page did not render (${trunc(x.message, 60)}); its render gates did not run`, 'Fix the page or the URL and rerun; an unrendered page is never a pass'); }
     if (extra.notRun) renderNotRun = extra.notRun;
   } catch (e) {
     renderNotRun = e.message;
   }
 }
 
+const renderIncomplete = opts.render && (Boolean(renderNotRun) || renderFailures.length > 0 || !renderScreenshots.length);
 const SNAP = join(process.cwd(), '.hallmark', 'before.json');
 const squash = (t) => t.replace(/\s+/g, ' ').trim();
 const escRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -4478,7 +4498,7 @@ if (dismissed) tally.push(`${dismissed} DISMISSED`);
 if (notes) tally.push(`${notes} NOTE`);
 
 let beforeLine = null;
-if (opts.before) {
+if (opts.before && !(opts.requireRender && renderIncomplete)) {
   const inv = takeInventory();
   mkdirSync(dirname(SNAP), { recursive: true });
   writeFileSync(SNAP, JSON.stringify({ v: 1, at: new Date().toISOString(), scope: opts.scope, summary: { fails, reflex, warns }, ...inv }, null, 1) + '\n');
@@ -4486,7 +4506,7 @@ if (opts.before) {
 }
 const keptNote = keptLine ? `kept: ${keptLine.parts.join(', ') || 'nothing recorded'}${keptLine.was ? `; before ${keptLine.was.fails} FAIL, ${keptLine.was.reflex} REFLEX, now ${fails} FAIL, ${reflex} REFLEX` : ''}` : null;
 let compareNote = null;
-if (opts.kept && opts.render && !renderNotRun) {
+if (opts.kept && opts.render && !renderIncomplete) {
   try {
     const mod = await import(new URL('./sloplint-render.mjs', import.meta.url).href);
     const made = mod.writeCompare([...files.filter((f) => extname(f).toLowerCase() === '.html'), ...opts.urls], keptNote ? keptNote.replace(/^kept: /, 'Kept: ').replace(/; before (\d+) FAIL, (\d+) REFLEX, now (\d+) FAIL, (\d+) REFLEX/, '. Floor findings: $1 before, $3 now. Reflex findings: $2 before, $4 now') + '.' : null);
@@ -4494,15 +4514,16 @@ if (opts.kept && opts.render && !renderNotRun) {
   } catch {}
 }
 const scopeNote = `${files.length} file(s)${opts.urls.length ? ` and ${opts.urls.length} URL(s)` : ''}${opts.stage === 'hero' ? ' (hero stage)' : ''}`;
-const renderNote = opts.render ? (renderNotRun ? `render tier not run: ${renderNotRun}` : null) : null;
+const renderStatus = !opts.render ? 'off' : renderNotRun ? `not run: ${renderNotRun}` : renderIncomplete ? 'incomplete' : 'ran';
+const renderNote = opts.render ? `render tier ${renderStatus}. Captured ${renderScreenshots.length} screenshots` : null;
 if (opts.json) {
   console.log(JSON.stringify({
-    summary: { fails, reflex, warns, waived, rejected, answered, dismissed, notes, files: files.length, render: opts.render ? (renderNotRun ? `not run: ${renderNotRun}` : 'ran') : 'off', ...(keptNote ? { kept: keptNote } : {}), ...(beforeLine ? { before: beforeLine } : {}) },
+    summary: { fails, reflex, warns, waived, rejected, answered, dismissed, notes, files: files.length, render: renderStatus, ...(opts.render ? { screenshots: renderScreenshots, renderFailures } : {}), ...(keptNote ? { kept: keptNote } : {}), ...(beforeLine ? { before: beforeLine } : {}) },
     findings: unique,
   }, null, 2));
 } else {
-  if (!unique.length) console.log(`sloplint: clean. 0 FAIL, 0 REFLEX, 0 WARN across ${scopeNote}.`);
-  else if (opts.before) {
+  if (!unique.length) console.log(`sloplint: ${renderIncomplete ? 'capture incomplete. ' : 'clean. '}0 FAIL, 0 REFLEX, 0 WARN across ${scopeNote}.`);
+  else if (beforeLine) {
     const by = new Map();
     for (const f of unique) { const k = `${f.grade} ${f.gate}`; if (!by.has(k)) by.set(k, []); by.get(k).push(f); }
     for (const [k, list] of by) console.log(`  ${k}${list.length > 1 ? ` x${list.length}` : ''} ${list.slice(0, 2).map((f) => `${f.file}:${f.line} ${trunc(f.evidence, 64)}`).join('; ')} | fix: ${list[0].fix}`);
@@ -4532,5 +4553,5 @@ if (opts.json) {
   if (compareNote) console.log(compareNote);
   if (beforeLine) console.log(beforeLine);
 }
-const exitCode = !opts.before && (fails > 0 || reflex > 0) ? 1 : 0;
+const exitCode = opts.requireRender && renderIncomplete ? 2 : !opts.before && (fails > 0 || reflex > 0) ? 1 : 0;
 if (process.stdout.writableLength) process.stdout.once('drain', () => process.exit(exitCode)); else process.exit(exitCode);
