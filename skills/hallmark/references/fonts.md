@@ -1,5 +1,7 @@
 # Fonts
 
+[Current decision guide](design-decisions/typography.md) applies to new designs and scoped edits. Use the recipes below when a catalog theme or this composition needs them.
+
 Loaded on a custom run. A catalog theme has already named its faces; do not read this to second-guess it.
 
 **Needs before reading:** the page's idea and what it shows. **Gives:** a display face, a body face, an optional outlier, and the load rules.

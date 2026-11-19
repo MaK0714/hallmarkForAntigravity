@@ -1,5 +1,7 @@
 # Layout
 
+[Current decision guide](design-decisions/placement.md) applies to new designs and scoped edits. Use the recipes below when a catalog theme or this composition needs them.
+
 The canvas, the sizes, the sections and the hero for every theme build; a custom run designs its own (`direction.md`). A page looks made when every screen holds one idea at the right size. Numbers are at 1440 x 900 unless a line says otherwise.
 
 ## 1. The canvas

@@ -1,5 +1,7 @@
 # Craft
 
+[Current decision guide](design-decisions/color.md) applies to new designs and scoped edits. Use the recipes below when a catalog theme or this composition needs them.
+
 Type, colour, surfaces, motion, copy, section openings, missing facts and finish, read on every page build, as numbers wherever a number exists. `layout.md` owns the canvas, the sizes, the sections and the hero; `imagery.md` owns the pictures; the theme supplies the material.
 
 ## 1. Type

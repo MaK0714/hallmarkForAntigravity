@@ -1,5 +1,7 @@
 # Custom: a page of its own
 
+[Current decision guide](design-decisions/style.md) applies to new designs and scoped edits. Use the recipes below when a catalog theme or this composition needs them.
+
 The opt-in path, taken only when the user asks for it (**custom**, "bespoke", "no theme", "a world of its own", "derive it"); silence deals a theme. The catalog takes it back when the user names a theme ("custom, something like Newsprint" is that theme with a mood note), when a `design.md` or a real brand already exists (inherit it), in component scope, and under `--fast` (say so).
 
 ## Yours, all of it

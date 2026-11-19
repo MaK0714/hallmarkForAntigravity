@@ -13,6 +13,8 @@ Two, shared by the whole page, in `rem` so they follow the user's font size. The
 - **Under 60rem:** multi-column grids go to one column, tilts and clip effects drop, sticky panes unstick, every hero posture collapses to content height (Poster may stay full-bleed).
 - **Under 40rem:** display sizes step down, margin captions move inline, annotations consolidate.
 
+When a flex row becomes a column, review each child's `flex-basis` on the new main axis. A desktop `flex: 1 1 200px` can give each mobile filter group 200px of height. Use an appropriate content-based basis such as `flex: 0 1 auto` for the stacked controls. Inspect the actual spacing before the first result, including empty space inside the filter panel.
+
 ## Fluid and discrete
 
 `clamp()` for sizes that change continuously (the scale's display tokens already do); media queries for layouts that change discretely. Detect capability with `@media (hover: hover)` and `(pointer: coarse)`, never with width:
