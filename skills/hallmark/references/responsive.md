@@ -1,48 +1,34 @@
 # Responsive
 
-Loaded for an unusual layout. No desktop-only interactions; every page renders without fault from 320 to 1920 CSS pixels.
+Use this for every new page and mobile design repair. Design the phone reading order, not just the desktop columns at a smaller width. Preserve the established desktop system during a scoped mobile repair.
 
-## What the script checks and what it cannot
+## Compose for the task
 
-sloplint covers the mechanical half at 320, 375, 414, 768, 1024, 1280, 1440 and 1920: horizontal scroll and `overflow-x: clip` (34), wrapping controls (49), image tracks and display heads (50), radio tabs (53), stacked sticky elements (56). Check by eye at each width what it cannot see: every desktop sidebar or filter column collapses into a menu or a disclosure, section heads stack to one column, and a per-theme override carries its own mobile rule.
+Before coding, identify what a phone visitor needs first: an item, answer, status, image, or action. Choose a short sequence that gets there. A shop may need identity, a compact filter row, then products; a story may deliberately open with an immersive image. Do not impose a universal above-the-fold rule.
 
-## Breakpoints
+Look at the space before the first useful content. Repeated context banners, badges, long introductions, oversized headings and separate filter panels can consume an entire phone screen even when nothing overflows. Consolidate redundant context while preserving required facts and notices. Keep essential controls near the content they affect. Secondary filters can use a labelled disclosure when needed; two short controls that fit can stay inline.
 
-Two, shared by the whole page, in `rem` so they follow the user's font size. The scaffold steps its tokens down at both: under 60rem (about 960px, the layout breakpoint) gutters drop to 24px and the three section gaps to 80, 96 and 120px; under 40rem (about 640px, the type breakpoint) gutters drop to 16px, the section gaps to 56, 72 and 96px, and column gaps to 16px. Write component rules against the same two widths, in one direction for the whole page. Add a third only where the content itself breaks.
+Choose column changes from the content. A two-column pair of small controls may work on a phone; a dense desktop sidebar may need a new arrangement. Avoid blindly stacking every column or turning every region into a full-width box. Keep DOM, visual and keyboard order coherent.
 
-- **Under 60rem:** multi-column grids go to one column, tilts and clip effects drop, sticky panes unstick, every hero posture collapses to content height (Poster may stay full-bleed).
-- **Under 40rem:** display sizes step down, margin captions move inline, annotations consolidate.
+## Size from real content
 
-When a flex row becomes a column, review each child's `flex-basis` on the new main axis. A desktop `flex: 1 1 200px` can give each mobile filter group 200px of height. Use an appropriate content-based basis such as `flex: 0 1 auto` for the stacked controls. Inspect the actual spacing before the first result, including empty space inside the filter panel.
+Use fluid type where useful and breakpoints where a component actually stops fitting. Start with modest phone gutters around 16px and gaps around 12 to 24px, then adjust to the material. Large section gaps are a deliberate storytelling choice, not the default for task interfaces. Keep reading text comfortable and controls easy to tap without inflating every label and metadata line.
 
-## Fluid and discrete
+- Grid tracks often need `minmax(0, 1fr)`; flex and grid children may need `min-inline-size: 0`. Long user content needs intentional wrapping.
+- When a flex row becomes a column, reset any desktop `flex-basis` that would become an unwanted height. A desktop `flex: 1 1 200px` can add 200px to each stacked filter. Use a content-based basis such as `flex: 0 1 auto` where appropriate.
+- Let control rows wrap before forcing labels onto awkward lines. Shorten a label only if its meaning stays clear. Apply `white-space: nowrap` only when the control itself fits; allow longer phrases and translated links to wrap naturally.
+- Use `width: 100%` rather than `100vw` inside page gutters. Fix the element causing overflow; do not conceal it with page-wide `overflow-x: hidden` or `clip`.
+- Images need intrinsic dimensions and responsive sizing. Use intentional mobile crops where appropriate; preserve important subjects and captions. Do not lazy-load the leading image.
+- Dense tables need deliberate column priorities, labelled stacked rows or a clearly scrollable region. Preserve the information needed to understand and act on each row.
 
-`clamp()` for sizes that change continuously (the scale's display tokens already do); media queries for layouts that change discretely. Detect capability with `@media (hover: hover)` and `(pointer: coarse)`, never with width:
+## Phone interactions
 
-```css
-@media (hover: hover) { .link:hover { text-decoration-thickness: 2px; } }
-@media (pointer: coarse) { .btn { min-height: 48px; } }
-```
+No hover-only actions. Use capability queries for hover and coarse pointers. Allow comfortable touch areas, visible focus and space between competing actions. Avoid shrinking type or tap targets to make a row fit.
 
-Body-adjacent UI (meta, nav links, controls) runs larger on a phone and tightens at 60rem (`craft.md` § 9).
+Dialogs need a constrained width, scrollable content and reachable close action. Check sticky headers, bottom controls, browser chrome, the software keyboard and safe areas together. Prefer content height for task headers; use `svh` or `dvh` when viewport height is intentional. Keep focused fields visible. Respect reduced motion and avoid scroll-dependent access to essential content.
 
-## Clickable text never wraps
+## Inspect the actual result
 
-Buttons, primary nav links and CTAs are single-line at every width from 320 to 1920 (49a); footer links, tabs and breadcrumbs too unless a real phrase cannot shorten (49b). When one wraps, in this order:
+Capture and open 320px, 375px and 390px views, plus desktop. With `capture.mjs`, use `--sizes desktop,narrow,mobile,phone --scale 1`. The staged design runner includes these phone captures automatically. Review each width explicitly: title wrapping, header height, controls, first useful content, image crop, alignment and overflow. Inspect below the fold too. A screenshot proves appearance only; exercise the primary action, empty results, error states, dialogs and focus separately. Repeat narrow checks in revealed states.
 
-1. **Shorten the label.** *Get started free* to *Start free*; *Read the documentation* to *Read the docs*.
-2. **`white-space: nowrap`** on the control, and let the row around it reflow.
-3. **Collapse the row**, not the labels: under 60rem the links that no longer fit go behind a menu, while two or three short ones that fit stay in the bar.
-
-## Units and safe areas
-
-- `dvh` or `svh` for heights that meet mobile browser chrome, never `vh` on a hero (6a); `width: 100%`, never `100vw` (34).
-- With `viewport-fit=cover`, fold the safe area into the gutter token: `--gutter: max(16px, env(safe-area-inset-left))`.
-
-## Tables, images, languages
-
-- **Tables** on a phone keep the column that names the row and the one that acts on it in view: restack each row as a labelled block, or pin the first column (`craft.md` § 9, F25). Ten columns on a phone is a redesign, not a squeeze.
-- **Images:** `srcset` with width descriptors, `<picture>` for a different crop, `width` and `height` attributes on every image, `loading="lazy"` below the fold and never on the LCP element.
-- **Languages:** logical properties (`margin-inline-start`, `padding-block`), room for 30 to 40% longer strings, no hard-coded date or number formats.
-
-Never: device sniffing instead of feature queries, hover-only interactions, breakpoints in `px`.
+sloplint covers mechanical problems across several widths. It cannot judge whether the phone composition wastes space, buries the task or tells the right story. An absence of lint findings is not mobile design acceptance. For longer strings, user content and larger text, check that labels, controls and reading order remain usable.

@@ -8,7 +8,10 @@ import { imageReads, review, reviewKeys } from './native-review.mjs';
 
 test('only successful native image reads count as visual inspection', () => {
   const event = (state, error, path = 'mobile.png') => JSON.stringify({ step_update: { state, tool_info: { name: 'read_file', parameters: { Path: path }, error } } });
-  assert.deepEqual([...imageReads([event('ACTIVE'), event('DONE', { message: 'missing' }), event('DONE', null, 'notes.md'), event('DONE')].join('\n'), '/site')], ['/site/mobile.png']);
+  assert.deepEqual(
+    [...imageReads([event('ACTIVE'), event('DONE', { message: 'missing' }), event('DONE', null, 'notes.md'), event('DONE')].join('\n'), '/site')],
+    ['/site/mobile.png']
+  );
 });
 
 test('a plausible passing receipt without image tool reads is rejected', async (t) => {
@@ -18,9 +21,10 @@ test('a plausible passing receipt without image tool reads is rejected', async (
   for (const view of ['desktop', 'mobile']) {
     const path = join(root, view + '.png');
     await writeFile(path, 'test image bytes');
-    screenshots.push({ view, path });
+    screenshots.push({ view, path, ...(view === 'mobile' ? { width: 375 } : {}) });
   }
   const input = { config: {}, workspace: root, output: root, reviewPath: join(root, 'review.json'), artifactDigest: 'bound', verification: { screenshots }, reviewNumber: 1 };
+  let mobileViews;
   let reads = false;
   let corruptReceipt = false;
   let changeCapture = false;
@@ -28,7 +32,7 @@ test('a plausible passing receipt without image tool reads is rejected', async (
     await mkdir(call.output, { recursive: true });
     const receipts = await Promise.all(screenshots.map(async ({ path }) => ({ path, sha256: createHash('sha256').update(await readFile(path)).digest('hex') })));
     if (corruptReceipt) receipts[0].sha256 = 'wrong';
-    await writeFile(input.reviewPath, JSON.stringify({ artifactDigest: 'bound', checks: Object.fromEntries(reviewKeys.map((key) => [key, { pass: true, evidence: 'Observed in mobile and desktop image.' }])), findings: [], limitations: ['Subjective review'], images: receipts }));
+    await writeFile(input.reviewPath, JSON.stringify({ artifactDigest: 'bound', checks: Object.fromEntries(reviewKeys.map((key) => [key, { pass: true, evidence: 'Observed in mobile and desktop image.' }])), findings: [], limitations: ['Subjective review'], images: receipts, mobileViews }));
     await writeFile(join(call.output, `turn-${call.turn}.ndjson`), reads ? screenshots.map(({ path }) => JSON.stringify({ step_update: { state: 'DONE', tool_info: { name: 'read_file', parameters: { Path: path } } } })).join('\n') : '');
     if (changeCapture) await writeFile(screenshots[0].path, 'changed capture');
     return { code: 0, conversation: 'same-review' };
@@ -38,6 +42,12 @@ test('a plausible passing receipt without image tool reads is rejected', async (
   const result = await review(input, { invoke });
   assert.equal(result.inspection.conversation, 'same-review');
   assert.deepEqual(result.inspection.views, ['desktop', 'mobile']);
+  input.verification.mobileWidths = [375];
+  await assert.rejects(review(input, { invoke }), /Missing observed mobile review for 375px/);
+  mobileViews = [{ width: 375, pass: false, evidence: 'Filter panel consumes the first phone screen.' }];
+  await assert.rejects(review(input, { invoke }), /cannot pass mobilePath/);
+  mobileViews[0].pass = true;
+  await review(input, { invoke });
   corruptReceipt = true;
   await assert.rejects(review(input, { invoke }), /receipts do not match/);
   corruptReceipt = false;

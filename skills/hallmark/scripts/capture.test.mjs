@@ -9,7 +9,7 @@ import test from 'node:test';
 
 const skip = !process.env.HALLMARK_PUPPETEER || !process.env.CHROME_PATH ? 'set HALLMARK_PUPPETEER and CHROME_PATH for real-browser regressions' : false;
 const script = fileURLToPath(new URL('./capture.mjs', import.meta.url));
-async function capture(routes, prepare, check, out) {
+async function capture(routes, prepare, check, out, sizes = 'desktop') {
   const dir = mkdtempSync(join(tmpdir(), 'hallmark-capture-'));
   const server = createServer((req, res) => {
     if (req.url === '/redirect') { res.writeHead(302, { Location: '/ok' }); res.end(); return; }
@@ -21,7 +21,7 @@ async function capture(routes, prepare, check, out) {
   try {
     prepare?.(dir);
     const result = await new Promise((resolve, reject) => {
-      const p = spawn(process.execPath, [script, `http://127.0.0.1:${server.address().port}`, '--routes', routes, '--sizes', 'desktop', '--wait', '0', '--scale', '1', '--out', out || dir], { cwd: dir, env: process.env });
+      const p = spawn(process.execPath, [script, `http://127.0.0.1:${server.address().port}`, '--routes', routes, '--sizes', sizes, '--wait', '0', '--scale', '1', '--out', out || dir], { cwd: dir, env: process.env });
       let stdout = '', stderr = '';
       p.stdout.on('data', (s) => { stdout += s; });
       p.stderr.on('data', (s) => { stderr += s; });
@@ -80,3 +80,18 @@ for (const routes of ['/a/b,/a-b', '/,/home', '/a/b,/a-b,/a/b', '/a/b,/a-b,/a-b-
     });
   });
 }
+
+test('mobile capture widths are real pixels, and misspelled sizes fail instead of capturing desktop', { skip }, async () => {
+  await capture('/ok', null, (dir, result) => {
+    assert.equal(result.status, 0, result.stderr);
+    for (const [size, width] of [['narrow', 320], ['mobile', 375], ['phone', 390]]) {
+      const png = readFileSync(join(dir, `screen-ok-${size}.png`));
+      assert.equal(png.readUInt32BE(16), width);
+    }
+  }, undefined, 'narrow,mobile,phone');
+  await capture('/ok', null, (dir, result) => {
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /Unknown capture size/);
+    assert.equal(readdirSync(dir).length, 0);
+  }, undefined, 'phoen');
+});

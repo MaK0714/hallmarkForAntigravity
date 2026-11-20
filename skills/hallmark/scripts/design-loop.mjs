@@ -7,6 +7,7 @@ import { parseArgs, promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { defaultVerify, runReviewLoop } from './review-loop.mjs';
 import { imageReads } from './native-review.mjs';
+import { captureMobile, mobileWidths } from './mobile-review.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -103,7 +104,7 @@ async function runUnlocked(input, dependencies = {}) {
   const inputs = await prepareInputs(config);
   await mkdir(config.output, { recursive: true });
   const statePath = join(config.output, 'progress.json');
-  const identity = hash(JSON.stringify({ prompt: config.prompt, implementationPrompt: config.implementationPrompt, model: config.model, references: inputs.references, assets: inputs.assets, maxRepairs: config.maxRepairs }));
+  const identity = hash(JSON.stringify({ prompt: config.prompt, implementationPrompt: config.implementationPrompt, model: config.model, references: inputs.references, assets: inputs.assets, maxRepairs: config.maxRepairs, mobileWidths }));
   let progress;
   try { progress = JSON.parse(await readFile(statePath, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   if (progress && progress.identity !== identity) throw new Error('Design inputs changed. Use a fresh output directory.');
@@ -111,15 +112,15 @@ async function runUnlocked(input, dependencies = {}) {
   if (progress.phase !== 'complete' && !progress.preflight && !dependencies.invoke && !dependencies.runLoop) progress.preflight = await (dependencies.preflight || preflight)(config);
   const common = { ...config, requireRepairImages: true, reviewer: join(here, 'native-review.mjs') };
   const referencePaths = inputs.references.flatMap((source) => source.images.map((image) => image.path));
-  const handoff = `Read .agents/skills/hallmarkForAntigravity/SKILL.md and ${join(inputs.folder, 'manifest.json')}. All resource filenames are exact; do not guess font names, inspect font binaries or discover browsers. Host capture and task tests are provided. Use native file tools. Existing index.html has a host backup; use edit_file or the documented overwrite option when replacing it. Keep review receipts outside product UI. Do not claim host testing yourself.`;
+  const handoff = `Read .agents/skills/hallmarkForAntigravity/SKILL.md, .agents/skills/hallmarkForAntigravity/references/responsive.md and ${join(inputs.folder, 'manifest.json')}. All resource filenames are exact; do not guess font names, inspect font binaries or discover browsers. Host capture and task tests are provided. Use native file tools. Existing index.html has a host backup; use edit_file or the documented overwrite option when replacing it. Keep review receipts outside product UI. Do not claim host testing yourself.`;
   const loop = dependencies.runLoop || runReviewLoop;
   if (progress.phase === 'composition') {
     const stageOutput = join(config.output, 'composition');
     const verify = dependencies.compositionVerify || (config.compositionVerifier ? (await import(pathToFileURL(resolve(config.compositionVerifier)).href)).verify : defaultVerify);
-    const composition = await loop({ ...common, output: stageOutput, verifier: config.compositionVerifier, prompt: `${config.prompt}\n\n${handoff}\n\nFirst create a visual composition, not the fully wired application. Before editing, use the image reader to view these actual reference captures: ${referencePaths.join(', ')}. Select one useful transfer and state its visible effect in ${join(inputs.folder, 'design-note.md')} under 250 words. Choose the composition yourself from the task and real material. Group content with type, spacing, alignment, imagery, rules or containers according to purpose. Include real content below the fold and leave interaction wiring pending the visual review. Stop when the composition exists.` }, {
+    const composition = await loop({ ...common, output: stageOutput, verifier: config.compositionVerifier, prompt: `${config.prompt}\n\n${handoff}\n\nFirst create a visual composition, not the fully wired application. Before editing, use the image reader to view these actual reference captures: ${referencePaths.join(', ')}. Select one useful transfer and state its visible effect in ${join(inputs.folder, 'design-note.md')} under 250 words. Choose the composition yourself from the task and real material. Plan the phone reading order before laying out desktop columns. Keep the first useful item or action reachable without redundant introductions or oversized stacked controls. Host review will inspect 320px, 375px and 390px captures separately. Group content with type, spacing, alignment, imagery, rules or containers according to purpose. Include real content below the fold and leave interaction wiring pending the visual review. Stop when the composition exists.` }, {
       ...dependencies,
       verify: async (args) => {
-        const result = await verify(args);
+        const result = await (dependencies.captureMobile || captureMobile)(args, config, await verify(args));
         const studied = await hasReferenceStudy(stageOutput, inputs.references, config.workspace);
         return { ...result, checks: [...result.checks, { name: 'reference image study before implementation', pass: studied, detail: studied ? 'Successful image reads precede the first page write in the native trace.' : `Use the image reader on these actual captures before editing: ${referencePaths.join(', ')}` }], interactionVerification: 'pending until composition acceptance' };
       },
@@ -138,7 +139,7 @@ async function runUnlocked(input, dependencies = {}) {
   const implementation = await loop({ ...common, conversation: progress.composition.conversation, output: join(config.output, 'implementation'), verifier: config.implementationVerifier, maxRepairs: remaining, prompt: `${config.prompt}\n\n${handoff}\n\nThe composition has passed the screenshot-based visual review. Preserve its accepted visual structure while implementing these task requirements:\n${config.implementationPrompt}\n\nDo not restart the design. Stop after implementation for fresh host captures, task tests and native image review.` }, {
     ...dependencies,
     verify: async (args) => {
-      const result = await verify(args);
+      const result = await (dependencies.captureMobile || captureMobile)(args, config, await verify(args));
       return { ...result, checks: [...result.checks, { name: 'task interactions actually verified', pass: result.interactionVerification === 'passed', detail: 'A task verifier must exercise real interactions and report passed, not just capture the page.' }] };
     },
   });

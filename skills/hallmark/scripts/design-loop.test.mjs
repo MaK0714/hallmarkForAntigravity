@@ -33,10 +33,17 @@ test('stages share one bounded repair budget and keep implementation behind visu
       await writeFile(join(workspace, 'index.html'), `<h1>Version ${builds}</h1>`);
       return { code: 0, conversation: 'retained' };
     },
-    review: async ({ artifactDigest }) => {
+    review: async ({ artifactDigest, verification }) => {
+      assert.deepEqual(verification.mobileWidths, [320, 375, 390]);
       visual++;
       const pass = visual > 1;
       return { artifactDigest, checks: Object.fromEntries(['subject', 'hierarchy', 'mobilePath', 'facts'].map((key) => [key, { pass, evidence: 'Observed the current matching captures.' }])), findings: pass ? [] : ['The first mobile item is hidden behind the oversized introduction.'] };
+    },
+    captureMobile: async (args, config, result) => ({ ...result, mobileWidths: [320, 375, 390] }),
+    captureMobile: async (args, config, result) => {
+      assert.ok(args.output);
+      assert.equal(config.workspace, workspace);
+      return { ...result, mobileWidths: [320, 375, 390] };
     },
     compositionVerify: screenshots,
     implementationVerify: async (args) => ({ ...await screenshots(args), checks: [{ name: 'reader', pass: ++finalChecks > 1, detail: 'Close does not restore focus.' }], interactionVerification: finalChecks > 1 ? 'passed' : 'failed' }),

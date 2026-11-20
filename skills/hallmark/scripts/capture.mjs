@@ -36,7 +36,12 @@ const sizes = flag('sizes', 'desktop,phone').split(',').map((s) => s.trim());
 const wait = Number(flag('wait', '600'));
 const scale = Number(flag('scale', '2'));
 const selector = flag('selector', '');
-const SIZES = { desktop: [1440, 900, false], laptop: [1280, 800, false], tablet: [834, 1112, true], phone: [390, 844, true] };
+const SIZES = { desktop: [1440, 900, false], laptop: [1280, 800, false], tablet: [834, 1112, true], narrow: [320, 812, true], mobile: [375, 812, true], phone: [390, 844, true] };
+
+if (sizes.some((size) => !Object.hasOwn(SIZES, size))) {
+  console.error(`Unknown capture size. Choose from: ${Object.keys(SIZES).join(', ')}`);
+  process.exit(2);
+}
 
 let puppeteer = null;
 const roots = [process.env.HALLMARK_PUPPETEER, process.cwd(), HERE].filter(Boolean);
@@ -90,7 +95,7 @@ const made = [];
 try {
   for (const route of isUrl ? routes : ['/']) {
     for (const size of sizes) {
-      const [w, h, mobile] = SIZES[size] || SIZES.desktop;
+      const [w, h, mobile] = SIZES[size];
       const p = await browser.newPage();
       if (has('dark')) await p.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
       await p.setViewport({ width: w, height: h, deviceScaleFactor: scale, isMobile: mobile, hasTouch: mobile });
